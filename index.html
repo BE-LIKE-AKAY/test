@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Request Analyzer</title>
+    <!-- Add Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Consolas', monospace;
+            background-color: #0a0f0d;
+            color: #00ff7f;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: #061a17;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(0, 255, 127, 0.2);
+        }
+        input, select, textarea {
+            width: 75%;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 6px;
+            border: none;
+            background: #072d26;
+            color: #00ff7f;
+            font-size: 14px;
+        }
+        button {
+            padding: 10px 16px;
+            background: #00aaff;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+            transition: 0.3s ease-in-out;
+            box-shadow: 0 0 10px rgba(0, 170, 255, 0.4);
+        }
+        button:hover {
+            background: #0088cc;
+            transform: scale(1.07);
+            box-shadow: 0 0 15px rgba(0, 170, 255, 0.6);
+        }
+        .loading {
+            display: none;
+            margin-top: 10px;
+        }
+        .loading img {
+            width: 40px;
+        }
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+            background: #061a17;
+            box-shadow: 0 0 15px rgba(0, 255, 127, 0.3);
+        }
+        th, td {
+            padding: 12px;
+            border: 1px solid #00ff7f;
+            text-align: left;
+            word-wrap: break-word;
+            max-width: 300px;
+            overflow-wrap: break-word;
+            white-space: pre-wrap;
+            color: #00ff7f;
+        }
+        th {
+            background: #00aaff;
+            color: #ffffff;
+        }
+        .toggle-btn {
+            background: #00ff7f;
+            color: black;
+            border: none;
+            padding: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .response-container {
+            display: none;
+            margin-top: 10px;
+            padding: 10px;
+            background: #072d26;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 255, 127, 0.2);
+        }
+        
+        /* Login System Styles */
+        .auth-container {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .auth-box {
+            background: #072d26;
+            padding: 30px;
+            border-radius: 12px;
+            width: 350px;
+            box-shadow: 0 0 20px rgba(0, 255, 127, 0.3);
+        }
+        .auth-box h2 {
+            margin-top: 0;
+            color: #00ff7f;
+        }
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        .auth-tab {
+            flex: 1;
+            padding: 10px;
+            background: #061a17;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        .auth-tab.active {
+            border-bottom: 2px solid #00ff7f;
+        }
+        .auth-content {
+            display: none;
+        }
+        .auth-content.active {
+            display: block;
+        }
+        .auth-provider-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            background: #072d26;
+            border: 1px solid #00ff7f;
+            color: #00ff7f;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .auth-provider-btn i {
+            margin-right: 10px;
+        }
+        .auth-provider-btn:hover {
+            background: #00ff7f;
+            color: #061a17;
+        }
+        #recaptcha-container {
+            margin: 15px 0;
+        }
+        .user-info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: #00ff7f;
+            display: flex;
+            align-items: center;
+        }
+        .user-info img {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .logout-btn {
+            background: transparent;
+            border: 1px solid #ff5555;
+            color: #ff5555;
+            margin-left: 10px;
+        }
+        .logout-btn:hover {
+            background: #ff5555;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- User Info Display -->
+    <div class="user-info" id="userInfo" style="display: none;">
+        <img id="userPhoto" src="" alt="User Photo">
+        <span id="userName"></span>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="auth-container" id="authContainer">
+        <div class="auth-box">
+            <h2>🔒 Authentication Required</h2>
+            <div class="auth-tabs">
+                <div class="auth-tab active" onclick="switchAuthTab('phone')">Phone</div>
+                <div class="auth-tab" onclick="switchAuthTab('google')">Google</div>
+            </div>
+            
+            <!-- Phone Login -->
+            <div class="auth-content active" id="phoneAuth">
+                <input type="tel" id="phoneNumber" placeholder="+1 123-456-7890" class="form-control">
+                <div id="recaptcha-container"></div>
+                <button onclick="sendOTP()">Send Verification Code</button>
+                
+                <div id="verifyOTPContainer" style="display: none; margin-top: 15px;">
+                    <input type="text" id="verificationCode" placeholder="Enter 6-digit code" class="form-control">
+                    <button onclick="verifyOTP()">Verify Code</button>
+                </div>
+            </div>
+            
+            <!-- Google Login -->
+            <div class="auth-content" id="googleAuth">
+                <button class="auth-provider-btn" onclick="signInWithGoogle()">
+                    <i class="fab fa-google"></i> Sign in with Google
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Content -->
+    <div class="container" id="appContent" style="display: none;">
+        <h2>🔍 Request Analyzer</h2>
+        <input type="text" id="urlInput" placeholder="Enter URL">
+        <select id="methodSelect">
+            <option value="GET">GET</option>
+            <option value="POST">POST</option>
+            <option value="PUT">PUT</option>
+            <option value="PATCH">PATCH</option>
+            <option value="DELETE">DELETE</option>
+        </select>
+        <textarea id="requestBody" rows="4" placeholder="Request Body (Optional)"></textarea>
+        <input type="text" id="headersInput" placeholder="Custom Headers (e.g., Key: Value, Key: Value)">
+        <button onclick="analyzeRequest()">Analyze</button>
+        
+        <div class="loading" id="loading">
+            <img src="https://i.gifer.com/4V0b.gif" alt="Loading...">
+        </div>
+
+        <table id="resultTable">
+            <thead>
+                <tr>
+                    <th>Request</th>
+                    <th>Response</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBLx5RMGQAEsLi-4dkp2eGfdiofAp5CpdQ",
+             authDomain: "marriage-proposal-96533.firebaseapp.com",
+             projectId: "marriage-proposal-96533",
+             storageBucket: "marriage-proposal-96533.firebasestorage.app",
+             messagingSenderId: "1065582171317",
+             appId: "1:1065582171317:web:1b94e30b5af34070a81afc",
+             measurementId: "G-16539SVKXH"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        let recaptchaVerifier;
+        let confirmationResult;
+
+        // Check auth state on page load
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                // User is signed in
+                showAppContent();
+                updateUserInfo(user);
+            } else {
+                // No user is signed in
+                showAuthContainer();
+            }
+        });
+
+        // Initialize recaptcha
+        function initializeRecaptcha() {
+            recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+                'size': 'normal',
+                'callback': () => {
+                    // reCAPTCHA solved, allow to send OTP
+                },
+                'expired-callback': () => {
+                    // Reset reCAPTCHA
+                }
+            });
+            recaptchaVerifier.render();
+        }
+
+        // Switch between auth tabs
+        function switchAuthTab(tab) {
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.auth-content').forEach(c => c.classList.remove('active'));
+            
+            document.querySelector(`.auth-tab[onclick="switchAuthTab('${tab}')"]`).classList.add('active');
+            document.getElementById(`${tab}Auth`).classList.add('active');
+            
+            if (tab === 'phone') {
+                initializeRecaptcha();
+            }
+        }
+
+        // Send OTP
+        function sendOTP() {
+            const phoneNumber = document.getElementById('phoneNumber').value;
+            
+            auth.signInWithPhoneNumber(phoneNumber, recaptchaVerifier)
+                .then(result => {
+                    confirmationResult = result;
+                    document.getElementById('verifyOTPContainer').style.display = 'block';
+                    alert('Verification code sent!');
+                })
+                .catch(error => {
+                    console.error('OTP send error:', error);
+                    alert('Error sending OTP: ' + error.message);
+                });
+        }
+
+        // Verify OTP
+        function verifyOTP() {
+            const code = document.getElementById('verificationCode').value;
+            
+            confirmationResult.confirm(code)
+                .then(result => {
+                    // User signed in successfully
+                    showAppContent();
+                    updateUserInfo(result.user);
+                })
+                .catch(error => {
+                    console.error('OTP verification error:', error);
+                    alert('Invalid verification code');
+                });
+        }
+
+        // Google Sign-In
+        function signInWithGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            
+            auth.signInWithPopup(provider)
+                .then(result => {
+                    // User signed in successfully
+                    showAppContent();
+                    updateUserInfo(result.user);
+                })
+                .catch(error => {
+                    console.error('Google sign-in error:', error);
+                    alert('Google sign-in failed: ' + error.message);
+                });
+        }
+
+        // Logout
+        function logout() {
+            auth.signOut()
+                .then(() => {
+                    showAuthContainer();
+                })
+                .catch(error => {
+                    console.error('Logout error:', error);
+                });
+        }
+
+        // Show auth container
+        function showAuthContainer() {
+            document.getElementById('authContainer').style.display = 'flex';
+            document.getElementById('appContent').style.display = 'none';
+            document.getElementById('userInfo').style.display = 'none';
+            initializeRecaptcha();
+        }
+
+        // Show app content
+        function showAppContent() {
+            document.getElementById('authContainer').style.display = 'none';
+            document.getElementById('appContent').style.display = 'block';
+            document.getElementById('userInfo').style.display = 'flex';
+        }
+
+        // Update user info display
+        function updateUserInfo(user) {
+            document.getElementById('userName').textContent = user.displayName || 'User';
+            if (user.photoURL) {
+                document.getElementById('userPhoto').src = user.photoURL;
+            }
+        }
+
+        // Your existing request analyzer functions
+        function analyzeRequest() {
+            const url = document.getElementById("urlInput").value;
+            const method = document.getElementById("methodSelect").value;
+            const body = document.getElementById("requestBody").value;
+            const headersInput = document.getElementById("headersInput").value;
+
+            if (!url) {
+                alert("Please enter a valid URL");
+                return;
+            }
+
+            let headers = { "Content-Type": "application/json" };
+            if (headersInput) {
+                headersInput.split(",").forEach(header => {
+                    const [key, value] = header.split(":").map(item => item.trim());
+                    if (key && value) {
+                        headers[key] = value;
+                    }
+                });
+            }
+
+            document.getElementById("loading").style.display = "block";
+
+            fetch(url, {
+                method: method,
+                headers: headers,
+                body: body ? body : null
+            })
+            .then(response => response.text().then(data => ({
+                status: response.status,
+                headers: Object.fromEntries(response.headers.entries()),
+                body: data
+            })))
+            .then(result => {
+                document.getElementById("loading").style.display = "none";
+                
+                const table = document.getElementById("resultTable").getElementsByTagName('tbody')[0];
+                const row = table.insertRow();
+                row.insertCell(0).innerText = `${method} ${url}`;
+
+                let responseCell = row.insertCell(1);
+                let responseId = `response-${Date.now()}`;
+                let showExpand = result.body.length > 500;
+
+                responseCell.innerHTML = `
+                    ${showExpand ? `<button class="toggle-btn" onclick="toggleResponse('${responseId}')">Expand</button>` : ""}
+                    <div id="${responseId}" class="response-container">
+                        <b>Status:</b> ${result.status}<br>
+                        <b>Response Headers:</b><br>
+                        ${JSON.stringify(result.headers, null, 2).replace(/\\n/g, "<br>")}<br>
+                        <b>Response Body:</b><br>${result.body}
+                    </div>
+                `;
+
+                const actionCell = row.insertCell(2);
+                const curlCommand = `curl -X ${method} "${url}" -H 'Content-Type: application/json' ${body ? `-d '${body}'` : ""}`;
+
+                actionCell.innerHTML = `
+                    <button class='action-btn' onclick='viewFullResponse(${JSON.stringify(result)})'>View Full</button>
+                `;
+            })
+            .catch(error => {
+                document.getElementById("loading").style.display = "none";
+                alert("Error: " + error);
+            });
+        }
+
+        function toggleResponse(responseId) {
+            const responseDiv = document.getElementById(responseId);
+            if (responseDiv.style.display === "none") {
+                responseDiv.style.display = "block";
+            } else {
+                responseDiv.style.display = "none";
+            }
+        }
+
+        function viewFullResponse(response) {
+            const newWindow = window.open();
+            newWindow.document.write("<html><head><title>Full Response</title>");
+            newWindow.document.write("<style>body { font-family: 'Consolas', monospace; background: #0a0f0d; color: #00ff7f; } pre { white-space: pre-wrap; }</style></head><body>");
+            newWindow.document.write("<h2>Full Response</h2>");
+            newWindow.document.write("<pre>" + JSON.stringify(response, null, 2) + "</pre>");
+            newWindow.document.write("</body></html>");
+        }
+
+        // Initialize on page load
+        window.onload = function() {
+            // Check if user is already authenticated
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    showAppContent();
+                    updateUserInfo(user);
+                } else {
+                    showAuthContainer();
+                }
+            });
+        };
+    </script>
+</body>
+</html>
