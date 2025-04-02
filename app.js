@@ -1,31 +1,15 @@
 // Firebase Configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyABC...",
-    authDomain: "your-project.firebaseapp.com",
-    projectId: "your-project-id",
-    storageBucket: "your-bucket.appspot.com",
-    messagingSenderId: "1234567890",
-    appId: "1:1234567890:web:abc123..."
+apiKey: "AIzaSyBjh67gaNfzBTk1gNTA-bhvgZG4YX0bjeQ",
+            authDomain: "friends-195c7.firebaseapp.com",
+            databaseURL: "https://friends-195c7-default-rtdb.firebaseio.com",
+            projectId: "friends-195c7",
+            storageBucket: "friends-195c7.firebasestorage.app",
+            messagingSenderId: "487210823099",
+            appId: "1:487210823099:web:30fb0fb91cd484486e289e",
+            measurementId: "G-PSLN4J6DGL"
 };
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
-
-// State Management
-let currentUser = null;
-let currentRoom = null;
-let unsubscribeMessages = null;
-
-// Auth State Listener
-auth.onAuthStateChanged(user => {
-    if (user) {
-        currentUser = user;
-        initApp();
-    } else {
-        showAuthScreen();
-    }
 });
 
 // Authentication Handler
