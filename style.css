@@ -1,85 +1,105 @@
-body {
-    font-family: Arial, sans-serif;
-    background: #121212;
-    color: #fff;
-    text-align: center;
+:root {
+    --primary: #1a1e28;
+    --secondary: #252a36;
+    --accent: #00ff9d;
+    --text: #e0e3e7;
+    --radius: 12px;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+    box-sizing: border-box;
     margin: 0;
     padding: 0;
 }
 
-h2 { color: #ff9800; }
-
-.auth-box {
-    background: rgba(0, 0, 0, 0.8);
-    padding: 20px;
-    width: 300px;
-    margin: 10% auto;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+body {
+    background: var(--primary);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    height: 100vh;
+    overflow: hidden;
 }
 
-input, button {
-    width: 90%;
-    margin: 8px 0;
-    padding: 10px;
+/* Neon Effects */
+.neon-logo {
+    font-size: 2.5rem;
+    text-shadow: 0 0 10px var(--accent);
+    color: var(--accent);
+}
+
+.neon-btn {
+    background: linear-gradient(45deg, var(--accent), #00ccff);
     border: none;
-    border-radius: 5px;
-}
-
-input {
-    background: #333;
-    color: white;
-}
-
-button {
-    background: #ff9800;
-    color: black;
+    padding: 12px 24px;
+    border-radius: var(--radius);
+    color: #fff;
     cursor: pointer;
-    transition: 0.3s;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
 }
 
-button:hover {
-    background: #e67e22;
+.neon-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255,255,255,0.2),
+        transparent
+    );
+    transition: 0.5s;
 }
 
-.chat-container {
-    display: flex;
-    justify-content: space-between;
-    height: 80vh;
+.neon-btn:hover::before {
+    left: 100%;
 }
 
-.sidebar {
-    width: 30%;
-    background: #1f1f1f;
-    padding: 10px;
-}
-
-.chat-box {
-    width: 65%;
-    background: #252525;
-    padding: 15px;
-    border-radius: 10px;
-}
-
-#messages {
-    height: 300px;
-    overflow-y: auto;
-    text-align: left;
-    padding: 10px;
-}
-
-.message-input {
-    display: flex;
-    gap: 10px;
-}
-
-.message-input input {
-    flex: 1;
-}
-
+/* Chat Messages */
 .message {
-    background: #444;
-    padding: 10px;
-    margin: 5px 0;
-    border-radius: 5px;
+    background: var(--secondary);
+    padding: 1rem;
+    border-radius: var(--radius);
+    margin: 0.5rem 0;
+    max-width: 70%;
+    animation: messageIn 0.3s ease;
+    position: relative;
+}
+
+.message::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 20px;
+    border-width: 10px 10px 0;
+    border-style: solid;
+    border-color: var(--secondary) transparent transparent;
+}
+
+.message.sent {
+    background: var(--accent);
+    margin-left: auto;
+}
+
+/* Animations */
+@keyframes messageIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes neonPulse {
+    0% { filter: drop-shadow(0 0 5px var(--accent)); }
+    50% { filter: drop-shadow(0 0 20px var(--accent)); }
+    100% { filter: drop-shadow(0 0 5px var(--accent)); }
 }
