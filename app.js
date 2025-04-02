@@ -1,3 +1,19 @@
+// Firebase Configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyABC...",
+    authDomain: "your-project.firebaseapp.com",
+    projectId: "your-project-id",
+    storageBucket: "your-bucket.appspot.com",
+    messagingSenderId: "1234567890",
+    appId: "1:1234567890:web:abc123..."
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// State Management
 let currentUser = null;
 let currentRoom = null;
 let unsubscribeMessages = null;
@@ -6,87 +22,63 @@ let unsubscribeMessages = null;
 auth.onAuthStateChanged(user => {
     if (user) {
         currentUser = user;
-        showApp();
-        loadProfile();
-        loadRooms();
+        initApp();
     } else {
-        showAuth();
+        showAuthScreen();
     }
 });
 
-// Auth Functions
-async function signUp() {
+// Authentication Handler
+async function handleAuth(action) {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
+
     try {
-        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-        await db.collection('users').doc(userCredential.user.uid).set({
-            email,
-            name: '',
-            dob: null,
-            rooms: []
-        });
+        if (action === 'signup') {
+            await auth.createUserWithEmailAndPassword(email, password);
+            await createUserProfile();
+        } else {
+            await auth.signInWithEmailAndPassword(email, password);
+        }
     } catch (error) {
         showError(error.message);
     }
 }
 
-async function signIn() {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    try {
-        await auth.signInWithEmailAndPassword(email, password);
-    } catch (error) {
-        showError(error.message);
-    }
-}
-
-function logout() {
-    auth.signOut();
-    if (unsubscribeMessages) unsubscribeMessages();
+// User Profile Creation
+async function createUserProfile() {
+    await db.collection('users').doc(currentUser.uid).set({
+        email: currentUser.email,
+        name: currentUser.email.split('@')[0],
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        rooms: []
+    });
 }
 
 // Room Management
 async function createRoom() {
-    const roomId = generateId();
-    await db.collection('rooms').doc(roomId).set({
-        name: `Room ${roomId.substring(0,5)}`,
-        owner: currentUser.uid,
-        members: [currentUser.uid],
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    joinRoom(roomId);
+    try {
+        const roomId = generateRoomId();
+        await db.collection('rooms').doc(roomId).set({
+            name: `Room ${roomId.slice(0,5)}`,
+            owner: currentUser.uid,
+            members: [currentUser.uid],
+            createdAt: new Date()
+        });
+        joinRoom(roomId);
+    } catch (error) {
+        showError(error.message);
+    }
 }
 
-function generateId() {
+function generateRoomId() {
     return Math.random().toString(36).substr(2, 9);
 }
 
-function loadRooms() {
-    db.collection('rooms').where('members', 'array-contains', currentUser.uid)
-        .onSnapshot(snapshot => {
-            const roomsList = document.getElementById('roomsList');
-            roomsList.innerHTML = '';
-            snapshot.forEach(doc => {
-                const room = doc.data();
-                roomsList.innerHTML += `
-                    <div class="room-item" onclick="joinRoom('${doc.id}')">
-                        <i class="mdi mdi-chat"></i>
-                        ${room.name}
-                        ${room.owner === currentUser.uid ? '<span class="owner-badge">👑</span>' : ''}
-                    </div>
-                `;
-            });
-        });
-}
-
-// Chat Functions
-function joinRoom(roomId) {
-    currentRoom = roomId;
-    document.getElementById('currentRoomId').textContent = roomId;
-    
+// Real-time Chat
+function setupChatListener(roomId) {
     if (unsubscribeMessages) unsubscribeMessages();
-    
+
     unsubscribeMessages = db.collection('messages')
         .where('roomId', '==', roomId)
         .orderBy('timestamp')
@@ -95,97 +87,62 @@ function joinRoom(roomId) {
             snapshot.docChanges().forEach(change => {
                 if (change.type === 'added') {
                     const msg = change.doc.data();
-                    container.appendChild(createMessageElement(msg, change.doc.id));
+                    container.appendChild(createMessageElement(msg));
+                    container.scrollTop = container.scrollHeight;
                 }
             });
-            container.scrollTop = container.scrollHeight;
         });
 }
 
-function createMessageElement(msg, id) {
+function createMessageElement(msg) {
     const div = document.createElement('div');
-    div.className = `message ${msg.sender === currentUser.uid ? 'sent' : 'received'}`;
+    div.className = `message ${msg.sender === currentUser.uid ? 'sent' : ''}`;
     div.innerHTML = `
         <div class="message-content">${msg.text}</div>
         <div class="message-footer">
+            <span class="timestamp">${new Date(msg.timestamp?.toDate()).toLocaleTimeString()}</span>
             <div class="reactions">
                 ${Object.entries(msg.reactions || {}).map(([emoji, count]) => `
-                    <span class="reaction" onclick="addReaction('${emoji}', '${id}')">
+                    <span class="reaction" onclick="addReaction('${emoji}', '${msg.id}')">
                         ${emoji} ${count}
                     </span>
                 `).join('')}
             </div>
-            <span class="timestamp">${msg.timestamp?.toDate().toLocaleTimeString()}</span>
         </div>
     `;
     return div;
 }
 
+// Message Handling
 async function sendMessage() {
     const input = document.getElementById('messageInput');
     const text = input.value.trim();
-    if (!text) return;
 
-    await db.collection('messages').add({
-        roomId: currentRoom,
-        sender: currentUser.uid,
-        text,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-        reactions: {}
-    });
-    input.value = '';
-}
-
-// Profile Management
-async function loadProfile() {
-    const doc = await db.collection('users').doc(currentUser.uid).get();
-    const user = doc.data();
-    document.getElementById('userName').textContent = user.name || user.email;
-    document.getElementById('profileName').value = user.name || '';
-    document.getElementById('profileEmail').value = user.email;
-    document.getElementById('profileDOB').value = user.dob || '';
-}
-
-async function updateProfile() {
-    const updates = {
-        name: document.getElementById('profileName').value,
-        email: document.getElementById('profileEmail').value,
-        dob: document.getElementById('profileDOB').value
-    };
-
-    try {
-        await currentUser.updateEmail(updates.email);
-        if (document.getElementById('profilePassword').value) {
-            await currentUser.updatePassword(document.getElementById('profilePassword').value);
+    if (text && currentRoom) {
+        try {
+            await db.collection('messages').add({
+                roomId: currentRoom,
+                sender: currentUser.uid,
+                text: text,
+                timestamp: new Date(),
+                reactions: {}
+            });
+            input.value = '';
+        } catch (error) {
+            showError(error.message);
         }
-        await db.collection('users').doc(currentUser.uid).update(updates);
-        toggleProfileModal();
-        loadProfile();
-    } catch (error) {
-        showError(error.message);
     }
 }
 
-// UI Functions
-function showApp() {
-    document.getElementById('authContainer').classList.add('hidden');
+// UI Helpers
+function initApp() {
+    document.getElementById('authScreen').classList.add('hidden');
     document.getElementById('appContainer').classList.remove('hidden');
+    loadUserProfile();
+    loadRooms();
 }
 
-function showAuth() {
-    document.getElementById('authContainer').classList.remove('hidden');
+function showAuthScreen() {
+    document.getElementById('authScreen').classList.remove('hidden');
     document.getElementById('appContainer').classList.add('hidden');
-}
-
-function toggleProfileModal() {
-    document.getElementById('profileModal').classList.toggle('hidden');
-}
-
-function toggleInviteModal() {
-    document.getElementById('inviteModal').classList.toggle('hidden');
-}
-
-function showError(message) {
-    // Implement error toast
-    console.error(message);
 }
