@@ -3,106 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NeonChat - Modern Chat System</title>
-    <link href="https://unpkg.com/@mdi/font@6.5.95/css/materialdesignicons.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
+    <title>Chat App</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body class="dark-theme">
-    <!-- Auth Container -->
-    <div class="auth-container" id="authContainer">
-        <div class="auth-card">
-            <div class="logo">
-                <i class="mdi mdi-chat"></i> NeonChat
+<body>
+    <div id="auth-section">
+        <div class="auth-box">
+            <h2>Chat App</h2>
+            <div id="login-form">
+                <input type="email" id="login-email" placeholder="Email">
+                <input type="password" id="login-password" placeholder="Password">
+                <button onclick="login()">Login</button>
+                <p>Don't have an account? <span onclick="showSignup()">Sign Up</span></p>
             </div>
-            <input type="email" id="email" placeholder="Email" class="auth-input">
-            <input type="password" id="password" placeholder="Password" class="auth-input">
-            <div class="auth-actions">
-                <button class="btn primary" onclick="signUp()">Sign Up</button>
-                <button class="btn" onclick="signIn()">Sign In</button>
+            <div id="signup-form" style="display: none;">
+                <input type="text" id="signup-name" placeholder="Full Name">
+                <input type="email" id="signup-email" placeholder="Email">
+                <input type="password" id="signup-password" placeholder="Password">
+                <button onclick="signup()">Register</button>
+                <p>Already have an account? <span onclick="showLogin()">Login</span></p>
             </div>
         </div>
     </div>
 
-    <!-- Main App Container -->
-    <div class="app-container hidden" id="appContainer">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="user-profile">
-                <div class="avatar" id="userAvatar"></div>
-                <div class="user-info">
-                    <span id="userName"></span>
-                    <button class="icon-btn" onclick="toggleProfileModal()">
-                        <i class="mdi mdi-account-cog"></i>
-                    </button>
-                </div>
-            </div>
-
-            <div class="rooms-section">
-                <div class="section-header">
-                    <h3>Your Rooms</h3>
-                    <button class="icon-btn" onclick="createRoom()">
-                        <i class="mdi mdi-plus-box"></i>
-                    </button>
-                </div>
-                <div class="rooms-list" id="roomsList"></div>
-            </div>
-        </div>
-
-        <!-- Chat Container -->
+    <div id="chat-section" style="display: none;">
+        <header>
+            <h2>Chat Rooms</h2>
+            <button onclick="logout()">Logout</button>
+        </header>
         <div class="chat-container">
-            <div class="chat-header">
-                <h3 id="currentRoomId"></h3>
-                <div class="room-actions">
-                    <button class="btn icon-btn" onclick="showInviteModal()">
-                        <i class="mdi mdi-account-plus"></i> Invite
-                    </button>
-                </div>
+            <div class="sidebar">
+                <input type="text" id="room-name" placeholder="Room Name">
+                <button onclick="createRoom()">Create Room</button>
+                <ul id="room-list"></ul>
             </div>
-
-            <div class="messages-container" id="messagesContainer"></div>
-
-            <div class="message-input-container">
-                <input type="text" id="messageInput" placeholder="Type your message...">
-                <div class="message-actions">
-                    <button class="btn primary" onclick="sendMessage()">
-                        <i class="mdi mdi-send"></i>
-                    </button>
+            <div class="chat-box">
+                <h3 id="current-room"></h3>
+                <div id="messages"></div>
+                <div class="message-input">
+                    <input type="text" id="chat-message" placeholder="Type a message">
+                    <button onclick="sendMessage()">Send</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Profile Modal -->
-    <div class="modal" id="profileModal">
-        <div class="modal-content">
-            <h2>Profile Settings</h2>
-            <input type="text" id="profileName" placeholder="Name">
-            <input type="email" id="profileEmail" placeholder="Email">
-            <input type="password" id="profilePassword" placeholder="New Password">
-            <input type="date" id="profileDOB">
-            <div class="modal-actions">
-                <button class="btn" onclick="updateProfile()">Save</button>
-                <button class="btn secondary" onclick="toggleProfileModal()">Cancel</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Invite Modal -->
-    <div class="modal" id="inviteModal">
-        <div class="modal-content">
-            <h2>Invite User</h2>
-            <input type="email" id="inviteEmail" placeholder="Email to invite">
-            <div class="modal-actions">
-                <button class="btn" onclick="sendInvite()">Send Invite</button>
-                <button class="btn secondary" onclick="toggleInviteModal()">Cancel</button>
-            </div>
-        </div>
-    </div>
-
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
     <script src="firebase-config.js"></script>
-    <script src="app.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
