@@ -1,53 +1,61 @@
-// Firebase Configuration
-const firebaseConfig = {
-apiKey: "AIzaSyBjh67gaNfzBTk1gNTA-bhvgZG4YX0bjeQ",
-            authDomain: "friends-195c7.firebaseapp.com",
-            databaseURL: "https://friends-195c7-default-rtdb.firebaseio.com",
-            projectId: "friends-195c7",
-            storageBucket: "friends-195c7.firebasestorage.app",
-            messagingSenderId: "487210823099",
-            appId: "1:487210823099:web:30fb0fb91cd484486e289e",
-            measurementId: "G-PSLN4J6DGL"
-};
+let currentUser = null;
+let currentRoom = null;
+let unsubscribeMessages = null;
 
+// Auth State Listener
+auth.onAuthStateChanged(user => {
+    if (user) {
+        currentUser = user;
+        showApp();
+        loadProfile();
+        loadRooms();
+    } else {
+        showAuth();
+    }
 });
 
-// Authentication Handler
-async function handleAuth(action) {
+// Auth Functions
+async function signUp() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
-
     try {
-        if (action === 'signup') {
-            await auth.createUserWithEmailAndPassword(email, password);
-            await createUserProfile();
-        } else {
-            await auth.signInWithEmailAndPassword(email, password);
-        }
+        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+        await db.collection('users').doc(userCredential.user.uid).set({
+            email,
+            name: '',
+            dob: null,
+            rooms: [],
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
     } catch (error) {
         showError(error.message);
     }
 }
 
-// User Profile Creation
-async function createUserProfile() {
-    await db.collection('users').doc(currentUser.uid).set({
-        email: currentUser.email,
-        name: currentUser.email.split('@')[0],
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        rooms: []
-    });
+async function signIn() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    try {
+        await auth.signInWithEmailAndPassword(email, password);
+    } catch (error) {
+        showError(error.message);
+    }
+}
+
+function logout() {
+    auth.signOut();
+    if (unsubscribeMessages) unsubscribeMessages();
 }
 
 // Room Management
 async function createRoom() {
     try {
-        const roomId = generateRoomId();
+        const roomId = db.collection('rooms').doc().id;
         await db.collection('rooms').doc(roomId).set({
-            name: `Room ${roomId.slice(0,5)}`,
+            name: `Room ${roomId.substring(0,5)}`,
             owner: currentUser.uid,
             members: [currentUser.uid],
-            createdAt: new Date()
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         joinRoom(roomId);
     } catch (error) {
@@ -55,60 +63,38 @@ async function createRoom() {
     }
 }
 
-function generateRoomId() {
-    return Math.random().toString(36).substr(2, 9);
-}
-
-// Real-time Chat
-function setupChatListener(roomId) {
+function joinRoom(roomId) {
+    currentRoom = roomId;
+    document.getElementById('currentRoom').textContent = `Room: ${roomId.substring(0,8)}`;
+    
     if (unsubscribeMessages) unsubscribeMessages();
-
+    
     unsubscribeMessages = db.collection('messages')
         .where('roomId', '==', roomId)
         .orderBy('timestamp')
         .onSnapshot(snapshot => {
             const container = document.getElementById('messagesContainer');
-            snapshot.docChanges().forEach(change => {
-                if (change.type === 'added') {
-                    const msg = change.doc.data();
-                    container.appendChild(createMessageElement(msg));
-                    container.scrollTop = container.scrollHeight;
-                }
+            container.innerHTML = '';
+            snapshot.forEach(doc => {
+                const msg = doc.data();
+                container.appendChild(createMessageElement(msg, doc.id));
             });
+            container.scrollTop = container.scrollHeight;
         });
-}
-
-function createMessageElement(msg) {
-    const div = document.createElement('div');
-    div.className = `message ${msg.sender === currentUser.uid ? 'sent' : ''}`;
-    div.innerHTML = `
-        <div class="message-content">${msg.text}</div>
-        <div class="message-footer">
-            <span class="timestamp">${new Date(msg.timestamp?.toDate()).toLocaleTimeString()}</span>
-            <div class="reactions">
-                ${Object.entries(msg.reactions || {}).map(([emoji, count]) => `
-                    <span class="reaction" onclick="addReaction('${emoji}', '${msg.id}')">
-                        ${emoji} ${count}
-                    </span>
-                `).join('')}
-            </div>
-        </div>
-    `;
-    return div;
 }
 
 // Message Handling
 async function sendMessage() {
     const input = document.getElementById('messageInput');
     const text = input.value.trim();
-
+    
     if (text && currentRoom) {
         try {
             await db.collection('messages').add({
                 roomId: currentRoom,
                 sender: currentUser.uid,
-                text: text,
-                timestamp: new Date(),
+                text,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                 reactions: {}
             });
             input.value = '';
@@ -118,15 +104,55 @@ async function sendMessage() {
     }
 }
 
-// UI Helpers
-function initApp() {
-    document.getElementById('authScreen').classList.add('hidden');
-    document.getElementById('appContainer').classList.remove('hidden');
-    loadUserProfile();
-    loadRooms();
+// Profile Management
+async function updateProfile() {
+    const updates = {
+        name: document.getElementById('profileName').value,
+        email: document.getElementById('profileEmail').value,
+        dob: document.getElementById('profileDOB').value
+    };
+
+    try {
+        await currentUser.updateEmail(updates.email);
+        if (document.getElementById('profilePassword').value) {
+            await currentUser.updatePassword(document.getElementById('profilePassword').value);
+        }
+        await db.collection('users').doc(currentUser.uid).update(updates);
+        toggleModal('profileModal');
+        loadProfile();
+    } catch (error) {
+        showError(error.message);
+    }
 }
 
-function showAuthScreen() {
-    document.getElementById('authScreen').classList.remove('hidden');
+// Invite System
+async function sendInvite() {
+    const email = document.getElementById('inviteEmail').value;
+    try {
+        await db.collection('rooms').doc(currentRoom).update({
+            members: firebase.firestore.FieldValue.arrayUnion(email)
+        });
+        toggleModal('inviteModal');
+    } catch (error) {
+        showError(error.message);
+    }
+}
+
+// UI Functions
+function toggleModal(modalId) {
+    document.getElementById(modalId).classList.toggle('hidden');
+}
+
+function showApp() {
+    document.getElementById('authContainer').classList.add('hidden');
+    document.getElementById('appContainer').classList.remove('hidden');
+}
+
+function showAuth() {
+    document.getElementById('authContainer').classList.remove('hidden');
     document.getElementById('appContainer').classList.add('hidden');
+}
+
+function showError(message) {
+    alert(`Error: ${message}`);
 }
