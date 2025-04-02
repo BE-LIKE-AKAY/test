@@ -3,29 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NeonChat Pro</title>
+    <title>NeonChat - Modern Chat System</title>
     <link href="https://cdn.jsdelivr.net/npm/@mdi/font@6.5.95/css/materialdesignicons.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <!-- Auth Screen -->
-    <div class="auth-screen" id="authScreen">
+    <div class="auth-container" id="authContainer">
         <div class="auth-card">
-            <div class="neon-logo">
+            <div class="logo">
                 <i class="mdi mdi-chat-processing"></i> NeonChat
             </div>
             <div class="form-group">
-                <input type="email" id="email" class="auth-input" placeholder="Email" required>
+                <input type="email" id="email" placeholder="Email" required>
                 <i class="mdi mdi-email"></i>
             </div>
             <div class="form-group">
-                <input type="password" id="password" class="auth-input" placeholder="Password" required>
+                <input type="password" id="password" placeholder="Password" required>
                 <i class="mdi mdi-lock"></i>
             </div>
-            <button class="neon-btn" onclick="handleAuth('signup')">
+            <button class="neon-btn" onclick="signUp()">
                 <i class="mdi mdi-account-plus"></i> Sign Up
             </button>
-            <button class="neon-btn secondary" onclick="handleAuth('login')">
+            <button class="neon-btn secondary" onclick="signIn()">
                 <i class="mdi mdi-login"></i> Sign In
             </button>
         </div>
@@ -38,7 +38,7 @@
             <div class="user-profile">
                 <div class="avatar" id="userAvatar"></div>
                 <div class="user-info">
-                    <h3 id="username">Loading...</h3>
+                    <h3 id="username"></h3>
                     <button class="icon-btn" onclick="toggleModal('profileModal')">
                         <i class="mdi mdi-account-cog"></i>
                     </button>
@@ -47,8 +47,8 @@
 
             <div class="rooms-section">
                 <div class="section-header">
-                    <h3>Chat Rooms</h3>
-                    <button class="icon-btn neon" onclick="createRoom()">
+                    <h3>Your Rooms</h3>
+                    <button class="icon-btn" onclick="createRoom()">
                         <i class="mdi mdi-plus-box"></i>
                     </button>
                 </div>
@@ -59,7 +59,7 @@
         <!-- Chat Area -->
         <div class="chat-area">
             <div class="chat-header">
-                <h2 id="currentRoom">General Chat</h2>
+                <h2 id="currentRoom">Select a Room</h2>
                 <div class="room-actions">
                     <button class="neon-btn small" onclick="toggleModal('inviteModal')">
                         <i class="mdi mdi-account-plus"></i> Invite
@@ -70,34 +70,47 @@
             <div class="messages-container" id="messagesContainer"></div>
 
             <div class="message-composer">
-                <div class="emoji-picker" onclick="toggleEmojiPicker()">
-                    <i class="mdi mdi-emoticon-happy"></i>
+                <input type="text" id="messageInput" placeholder="Type your message..." onkeypress="handleEnter(event)">
+                <div class="action-buttons">
+                    <button class="neon-btn" onclick="sendMessage()">
+                        <i class="mdi mdi-send"></i>
+                    </button>
                 </div>
-                <input type="text" id="messageInput" placeholder="Type your message...">
-                <button class="neon-btn send-btn" onclick="sendMessage()">
-                    <i class="mdi mdi-send"></i>
-                </button>
             </div>
         </div>
     </div>
 
-    <!-- Modals -->
-    <div class="modal-backdrop hidden" id="modalBackdrop"></div>
-    
     <!-- Profile Modal -->
     <div class="modal hidden" id="profileModal">
-        <!-- Modal Content -->
+        <div class="modal-content">
+            <h2>Profile Settings</h2>
+            <input type="text" id="profileName" placeholder="Name">
+            <input type="email" id="profileEmail" placeholder="Email">
+            <input type="password" id="profilePassword" placeholder="New Password">
+            <input type="date" id="profileDOB">
+            <div class="modal-actions">
+                <button class="neon-btn" onclick="updateProfile()">Save</button>
+                <button class="neon-btn secondary" onclick="toggleModal('profileModal')">Cancel</button>
+            </div>
+        </div>
     </div>
 
     <!-- Invite Modal -->
     <div class="modal hidden" id="inviteModal">
-        <!-- Modal Content -->
+        <div class="modal-content">
+            <h2>Invite User</h2>
+            <input type="email" id="inviteEmail" placeholder="Enter email">
+            <div class="modal-actions">
+                <button class="neon-btn" onclick="sendInvite()">Send Invite</button>
+                <button class="neon-btn secondary" onclick="toggleModal('inviteModal')">Cancel</button>
+            </div>
+        </div>
     </div>
 
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="firebase-config.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
