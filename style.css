@@ -1,0 +1,134 @@
+:root {
+    --primary: #2a2f3d;
+    --secondary: #1a1e27;
+    --accent: #00c9a7;
+    --text: #e0e0e0;
+    --hover: rgba(255,255,255,0.1);
+    --radius: 8px;
+    --transition: all 0.3s ease;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: var(--secondary);
+    color: var(--text);
+    font-family: 'Segoe UI', sans-serif;
+    line-height: 1.6;
+}
+
+/* Auth Styles */
+.auth-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(45deg, var(--secondary), var(--primary));
+}
+
+.auth-card {
+    background: var(--primary);
+    padding: 2rem;
+    border-radius: var(--radius);
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    transform: translateY(20px);
+    animation: slideUp 0.4s ease forwards;
+}
+
+/* App Layout */
+.app-container {
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    height: 100vh;
+}
+
+.sidebar {
+    background: var(--primary);
+    padding: 1rem;
+    border-right: 1px solid rgba(255,255,255,0.1);
+}
+
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* Messages */
+.messages-container {
+    flex: 1;
+    padding: 1rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.message {
+    background: var(--secondary);
+    padding: 0.8rem;
+    border-radius: var(--radius);
+    max-width: 70%;
+    animation: messageIn 0.3s ease;
+    transition: var(--transition);
+}
+
+.message.sent {
+    background: var(--accent);
+    align-self: flex-end;
+}
+
+/* Input */
+.message-input-container {
+    display: flex;
+    gap: 0.5rem;
+    padding: 1rem;
+    border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+/* Modals */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background: var(--primary);
+    padding: 2rem;
+    border-radius: var(--radius);
+    width: 90%;
+    max-width: 500px;
+}
+
+/* Animations */
+@keyframes slideUp {
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes messageIn {
+    from { opacity: 0; transform: translateY(10px); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .app-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .sidebar {
+        display: none;
+    }
+}

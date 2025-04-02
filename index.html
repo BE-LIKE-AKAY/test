@@ -3,815 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Request Analyzer</title>
-    <!-- Firebase SDK -->
+    <title>NeonChat - Modern Chat System</title>
+    <link href="https://unpkg.com/@mdi/font@6.5.95/css/materialdesignicons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-theme">
+    <!-- Auth Container -->
+    <div class="auth-container" id="authContainer">
+        <div class="auth-card">
+            <div class="logo">
+                <i class="mdi mdi-chat"></i> NeonChat
+            </div>
+            <input type="email" id="email" placeholder="Email" class="auth-input">
+            <input type="password" id="password" placeholder="Password" class="auth-input">
+            <div class="auth-actions">
+                <button class="btn primary" onclick="signUp()">Sign Up</button>
+                <button class="btn" onclick="signIn()">Sign In</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div class="app-container hidden" id="appContainer">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="user-profile">
+                <div class="avatar" id="userAvatar"></div>
+                <div class="user-info">
+                    <span id="userName"></span>
+                    <button class="icon-btn" onclick="toggleProfileModal()">
+                        <i class="mdi mdi-account-cog"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="rooms-section">
+                <div class="section-header">
+                    <h3>Your Rooms</h3>
+                    <button class="icon-btn" onclick="createRoom()">
+                        <i class="mdi mdi-plus-box"></i>
+                    </button>
+                </div>
+                <div class="rooms-list" id="roomsList"></div>
+            </div>
+        </div>
+
+        <!-- Chat Container -->
+        <div class="chat-container">
+            <div class="chat-header">
+                <h3 id="currentRoomId"></h3>
+                <div class="room-actions">
+                    <button class="btn icon-btn" onclick="showInviteModal()">
+                        <i class="mdi mdi-account-plus"></i> Invite
+                    </button>
+                </div>
+            </div>
+
+            <div class="messages-container" id="messagesContainer"></div>
+
+            <div class="message-input-container">
+                <input type="text" id="messageInput" placeholder="Type your message...">
+                <div class="message-actions">
+                    <button class="btn primary" onclick="sendMessage()">
+                        <i class="mdi mdi-send"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div class="modal" id="profileModal">
+        <div class="modal-content">
+            <h2>Profile Settings</h2>
+            <input type="text" id="profileName" placeholder="Name">
+            <input type="email" id="profileEmail" placeholder="Email">
+            <input type="password" id="profilePassword" placeholder="New Password">
+            <input type="date" id="profileDOB">
+            <div class="modal-actions">
+                <button class="btn" onclick="updateProfile()">Save</button>
+                <button class="btn secondary" onclick="toggleProfileModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invite Modal -->
+    <div class="modal" id="inviteModal">
+        <div class="modal-content">
+            <h2>Invite User</h2>
+            <input type="email" id="inviteEmail" placeholder="Email to invite">
+            <div class="modal-actions">
+                <button class="btn" onclick="sendInvite()">Send Invite</button>
+                <button class="btn secondary" onclick="toggleInviteModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        body {
-            font-family: 'Consolas', monospace;
-            background-color: #0a0f0d;
-            color: #00ff7f;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            max-width: 900px;
-            margin: auto;
-            background: #061a17;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 0 20px rgba(0, 255, 127, 0.2);
-        }
-        input, select, textarea {
-            width: 75%;
-            padding: 10px;
-            margin: 8px 0;
-            border-radius: 6px;
-            border: none;
-            background: #072d26;
-            color: #00ff7f;
-            font-size: 14px;
-        }
-        button {
-            padding: 10px 16px;
-            background: #00aaff;
-            color: #ffffff;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            margin: 5px;
-            transition: 0.3s ease-in-out;
-            box-shadow: 0 0 10px rgba(0, 170, 255, 0.4);
-        }
-        button:hover {
-            background: #0088cc;
-            transform: scale(1.07);
-            box-shadow: 0 0 15px rgba(0, 170, 255, 0.6);
-        }
-        .loading {
-            display: none;
-            margin-top: 10px;
-        }
-        .loading img {
-            width: 40px;
-        }
-        table {
-            width: 100%;
-            margin-top: 20px;
-            border-collapse: collapse;
-            background: #061a17;
-            box-shadow: 0 0 15px rgba(0, 255, 127, 0.3);
-        }
-        th, td {
-            padding: 12px;
-            border: 1px solid #00ff7f;
-            text-align: left;
-            word-wrap: break-word;
-            max-width: 300px;
-            overflow-wrap: break-word;
-            white-space: pre-wrap;
-            color: #00ff7f;
-        }
-        th {
-            background: #00aaff;
-            color: #ffffff;
-        }
-        .toggle-btn {
-            background: #00ff7f;
-            color: black;
-            border: none;
-            padding: 5px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .response-container {
-            display: none;
-            margin-top: 10px;
-            padding: 10px;
-            background: #072d26;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 255, 127, 0.2);
-        }
-        
-        /* Auth System Styles */
-        .auth-container {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-        .auth-box {
-            background: #072d26;
-            padding: 30px;
-            border-radius: 12px;
-            width: 350px;
-            box-shadow: 0 0 20px rgba(0, 255, 127, 0.3);
-        }
-        .auth-box h2 {
-            margin-top: 0;
-            color: #00ff7f;
-            text-align: center;
-        }
-        .auth-tabs {
-            display: flex;
-            margin-bottom: 20px;
-        }
-        .auth-tab {
-            flex: 1;
-            padding: 10px;
-            background: #061a17;
-            cursor: pointer;
-            text-align: center;
-            border-bottom: 2px solid transparent;
-        }
-        .auth-tab.active {
-            border-bottom: 2px solid #00ff7f;
-        }
-        .auth-content {
-            display: none;
-        }
-        .auth-content.active {
-            display: block;
-        }
-        .auth-footer {
-            text-align: center;
-            margin-top: 15px;
-        }
-        .auth-link {
-            color: #00aaff;
-            cursor: pointer;
-        }
-        .auth-link:hover {
-            text-decoration: underline;
-        }
-        
-        /* User Info Styles */
-        .user-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #00ff7f;
-        }
-        .user-info {
-            display: flex;
-            align-items: center;
-        }
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: #00aaff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 10px;
-            font-weight: bold;
-        }
-        .logout-btn {
-            background: transparent;
-            border: 1px solid #ff5555;
-            color: #ff5555;
-        }
-        .logout-btn:hover {
-            background: #ff5555;
-            color: white;
-        }
-        
-        /* Profile Page Styles */
-        .profile-container {
-            display: none;
-        }
-        .profile-section {
-            margin-bottom: 20px;
-            padding: 15px;
-            background: #072d26;
-            border-radius: 8px;
-        }
-        .profile-section h3 {
-            margin-top: 0;
-            color: #00aaff;
-            border-bottom: 1px solid #00ff7f;
-            padding-bottom: 5px;
-        }
-        .profile-info p {
-            margin: 10px 0;
-        }
-        .edit-form {
-            display: none;
-            margin-top: 15px;
-        }
-        .history-item {
-            padding: 10px;
-            border-bottom: 1px solid #00ff7f;
-            cursor: pointer;
-        }
-        .history-item:hover {
-            background: #072d26;
-        }
-    </style>
-</head>
-<body>
-    <!-- Auth Container -->
-    <div class="auth-container" id="authContainer">
-        <div class="auth-box">
-            <h2>🔒 Request Analyzer</h2>
-            
-            <div class="auth-tabs">
-                <div class="auth-tab active" onclick="switchAuthTab('login')">Login</div>
-                <div class="auth-tab" onclick="switchAuthTab('signup')">Sign Up</div>
-            </div>
-            
-            <!-- Login Form -->
-            <div class="auth-content active" id="loginAuth">
-                <div class="form-group">
-                    <input type="email" id="loginEmail" placeholder="Email" class="form-control">
-                </div>
-                <div class="form-group">
-                    <input type="password" id="loginPassword" placeholder="Password" class="form-control">
-                </div>
-                <button onclick="login()">Login</button>
-                <div class="auth-footer">
-                    <span class="auth-link" onclick="switchAuthTab('forgot')">Forgot Password?</span>
-                </div>
-                <div id="loginError" class="error-message" style="color: #ff5555; margin-top: 10px;"></div>
-            </div>
-            
-            <!-- Sign Up Form -->
-            <div class="auth-content" id="signupAuth">
-                <div class="form-group">
-                    <input type="text" id="signupName" placeholder="Full Name" class="form-control">
-                </div>
-                <div class="form-group">
-                    <input type="email" id="signupEmail" placeholder="Email" class="form-control">
-                </div>
-                <div class="form-group">
-                    <input type="password" id="signupPassword" placeholder="Password" class="form-control">
-                </div>
-                <div class="form-group">
-                    <input type="password" id="signupConfirmPassword" placeholder="Confirm Password" class="form-control">
-                </div>
-                <button onclick="signup()">Create Account</button>
-                <div class="auth-footer">
-                    Already have an account? <span class="auth-link" onclick="switchAuthTab('login')">Login</span>
-                </div>
-                <div id="signupError" class="error-message" style="color: #ff5555; margin-top: 10px;"></div>
-            </div>
-            
-            <!-- Forgot Password Form -->
-            <div class="auth-content" id="forgotAuth">
-                <div class="form-group">
-                    <input type="email" id="forgotEmail" placeholder="Your Email" class="form-control">
-                </div>
-                <button onclick="sendPasswordReset()">Send Reset Link</button>
-                <div class="auth-footer">
-                    Remember your password? <span class="auth-link" onclick="switchAuthTab('login')">Login</span>
-                </div>
-                <div id="forgotError" class="error-message" style="color: #ff5555; margin-top: 10px;"></div>
-                <div id="forgotSuccess" class="success-message" style="color: #00ff7f; margin-top: 10px;"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Main App Content -->
-    <div class="container" id="appContent" style="display: none;">
-        <div class="user-header">
-            <h2>🔍 Request Analyzer</h2>
-            <div class="user-info">
-                <div class="user-avatar" id="userAvatar"></div>
-                <span id="userName"></span>
-                <button class="logout-btn" onclick="logout()">Logout</button>
-                <button onclick="showProfile()" style="margin-left: 10px;"><i class="fas fa-user"></i> Profile</button>
-            </div>
-        </div>
-        
-        <input type="text" id="urlInput" placeholder="Enter URL">
-        <select id="methodSelect">
-            <option value="GET">GET</option>
-            <option value="POST">POST</option>
-            <option value="PUT">PUT</option>
-            <option value="PATCH">PATCH</option>
-            <option value="DELETE">DELETE</option>
-        </select>
-        <textarea id="requestBody" rows="4" placeholder="Request Body (Optional)"></textarea>
-        <input type="text" id="headersInput" placeholder="Custom Headers (e.g., Key: Value, Key: Value)">
-        <button onclick="analyzeRequest()">Analyze</button>
-        
-        <div class="loading" id="loading">
-            <img src="https://i.gifer.com/4V0b.gif" alt="Loading...">
-        </div>
-
-        <table id="resultTable">
-            <thead>
-                <tr>
-                    <th>Request</th>
-                    <th>Response</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
-
-    <!-- Profile Page -->
-    <div class="container profile-container" id="profileContainer">
-        <div class="user-header">
-            <h2>👤 User Profile</h2>
-            <button onclick="hideProfile()"><i class="fas fa-arrow-left"></i> Back</button>
-        </div>
-        
-        <div class="profile-section">
-            <h3>Account Information</h3>
-            <div class="profile-info" id="profileInfo">
-                <p><strong>Name:</strong> <span id="profileName"></span></p>
-                <p><strong>Email:</strong> <span id="profileEmail"></span></p>
-                <p><strong>Member Since:</strong> <span id="profileCreated"></span></p>
-            </div>
-            <button onclick="showEditForm()"><i class="fas fa-edit"></i> Edit Profile</button>
-            
-            <div class="edit-form" id="editForm">
-                <div class="form-group">
-                    <input type="text" id="editName" placeholder="Full Name" class="form-control">
-                </div>
-                <button onclick="updateProfile()">Save Changes</button>
-                <button class="logout-btn" onclick="hideEditForm()">Cancel</button>
-                <div id="profileError" class="error-message" style="color: #ff5555; margin-top: 10px;"></div>
-                <div id="profileSuccess" class="success-message" style="color: #00ff7f; margin-top: 10px;"></div>
-            </div>
-        </div>
-        
-        <div class="profile-section">
-            <h3>Activity History</h3>
-            <div id="activityHistory">
-                <!-- Activity history will be loaded here -->
-            </div>
-        </div>
-        
-        <div class="profile-section">
-            <h3>Change Password</h3>
-            <div class="form-group">
-                <input type="password" id="currentPassword" placeholder="Current Password" class="form-control">
-            </div>
-            <div class="form-group">
-                <input type="password" id="newPassword" placeholder="New Password" class="form-control">
-            </div>
-            <div class="form-group">
-                <input type="password" id="confirmPassword" placeholder="Confirm New Password" class="form-control">
-            </div>
-            <button onclick="changePassword()">Change Password</button>
-            <div id="passwordError" class="error-message" style="color: #ff5555; margin-top: 10px;"></div>
-            <div id="passwordSuccess" class="success-message" style="color: #00ff7f; margin-top: 10px;"></div>
-        </div>
-    </div>
-
-    <script>
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyBLx5RMGQAEsLi-4dkp2eGfdiofAp5CpdQ",
-             authDomain: "marriage-proposal-96533.firebaseapp.com",
-             projectId: "marriage-proposal-96533",
-             storageBucket: "marriage-proposal-96533.firebasestorage.app",
-             messagingSenderId: "1065582171317",
-             appId: "1:1065582171317:web:1b94e30b5af34070a81afc",
-             measurementId: "G-16539SVKXH"
-        };
-
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-        
-        // Current user data
-        let currentUser = null;
-        let userData = null;
-
-        // Check auth state on page load
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                // User is signed in
-                currentUser = user;
-                loadUserData();
-                showAppContent();
-            } else {
-                // No user is signed in
-                showAuthContainer();
-            }
-        });
-
-        // Load user data from Firestore
-        async function loadUserData() {
-            const userDoc = await db.collection('users').doc(currentUser.uid).get();
-            if (userDoc.exists) {
-                userData = userDoc.data();
-                updateUserDisplay();
-                loadActivityHistory();
-            } else {
-                // Create new user document if it doesn't exist
-                await db.collection('users').doc(currentUser.uid).set({
-                    name: currentUser.displayName || currentUser.email.split('@')[0],
-                    email: currentUser.email,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    lastLogin: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                loadUserData(); // Reload after creation
-            }
-        }
-
-        // Update user information display
-        function updateUserDisplay() {
-            document.getElementById('userName').textContent = userData.name;
-            document.getElementById('userAvatar').textContent = userData.name.charAt(0).toUpperCase();
-            
-            // Profile page
-            document.getElementById('profileName').textContent = userData.name;
-            document.getElementById('profileEmail').textContent = userData.email;
-            document.getElementById('editName').value = userData.name;
-            
-            if (userData.createdAt) {
-                const createdDate = userData.createdAt.toDate();
-                document.getElementById('profileCreated').textContent = createdDate.toLocaleString();
-            }
-        }
-
-        // Load user activity history
-        async function loadActivityHistory() {
-            const historyRef = db.collection('users').doc(currentUser.uid).collection('activity')
-                .orderBy('timestamp', 'desc')
-                .limit(50);
-            
-            const snapshot = await historyRef.get();
-            const historyContainer = document.getElementById('activityHistory');
-            historyContainer.innerHTML = '';
-            
-            if (snapshot.empty) {
-                historyContainer.innerHTML = '<p>No activity history yet.</p>';
-                return;
-            }
-            
-            snapshot.forEach(doc => {
-                const activity = doc.data();
-                const item = document.createElement('div');
-                item.className = 'history-item';
-                item.innerHTML = `
-                    <p><strong>${activity.action}</strong> - ${activity.timestamp.toDate().toLocaleString()}</p>
-                    ${activity.details ? `<p>${activity.details}</p>` : ''}
-                `;
-                historyContainer.appendChild(item);
-            });
-        }
-
-        // Record user activity
-        async function recordActivity(action, details = null) {
-            await db.collection('users').doc(currentUser.uid).collection('activity').add({
-                action: action,
-                details: details,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            loadActivityHistory(); // Refresh the history display
-        }
-
-        // Switch between auth tabs
-        function switchAuthTab(tab) {
-            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.auth-content').forEach(c => c.classList.remove('active'));
-            
-            document.querySelector(`.auth-tab[onclick="switchAuthTab('${tab}')"]`).classList.add('active');
-            document.getElementById(`${tab}Auth`).classList.add('active');
-            
-            // Clear errors when switching tabs
-            document.getElementById('loginError').textContent = '';
-            document.getElementById('signupError').textContent = '';
-            document.getElementById('forgotError').textContent = '';
-            document.getElementById('forgotSuccess').textContent = '';
-        }
-
-        // Login with email/password
-        function login() {
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-            const errorElement = document.getElementById('loginError');
-            
-            errorElement.textContent = '';
-            
-            auth.signInWithEmailAndPassword(email, password)
-                .then(async (userCredential) => {
-                    // Update last login time
-                    await db.collection('users').doc(userCredential.user.uid).update({
-                        lastLogin: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    recordActivity('User logged in');
-                })
-                .catch(error => {
-                    errorElement.textContent = error.message;
-                });
-        }
-
-        // Sign up new user
-        function signup() {
-            const name = document.getElementById('signupName').value;
-            const email = document.getElementById('signupEmail').value;
-            const password = document.getElementById('signupPassword').value;
-            const confirmPassword = document.getElementById('signupConfirmPassword').value;
-            const errorElement = document.getElementById('signupError');
-            
-            errorElement.textContent = '';
-            
-            if (password !== confirmPassword) {
-                errorElement.textContent = 'Passwords do not match';
-                return;
-            }
-            
-            auth.createUserWithEmailAndPassword(email, password)
-                .then(async (userCredential) => {
-                    // Create user document
-                    await db.collection('users').doc(userCredential.user.uid).set({
-                        name: name,
-                        email: email,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        lastLogin: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    
-                    // Send email verification
-                    await userCredential.user.sendEmailVerification();
-                    
-                    recordActivity('New account created');
-                    alert('Account created successfully! Please check your email for verification.');
-                })
-                .catch(error => {
-                    errorElement.textContent = error.message;
-                });
-        }
-
-        // Send password reset email
-        function sendPasswordReset() {
-            const email = document.getElementById('forgotEmail').value;
-            const errorElement = document.getElementById('forgotError');
-            const successElement = document.getElementById('forgotSuccess');
-            
-            errorElement.textContent = '';
-            successElement.textContent = '';
-            
-            auth.sendPasswordResetEmail(email)
-                .then(() => {
-                    successElement.textContent = 'Password reset email sent. Please check your inbox.';
-                    recordActivity('Password reset requested');
-                })
-                .catch(error => {
-                    errorElement.textContent = error.message;
-                });
-        }
-
-        // Logout
-        function logout() {
-            auth.signOut()
-                .then(() => {
-                    recordActivity('User logged out');
-                    showAuthContainer();
-                })
-                .catch(error => {
-                    console.error('Logout error:', error);
-                });
-        }
-
-        // Show profile page
-        function showProfile() {
-            document.getElementById('appContent').style.display = 'none';
-            document.getElementById('profileContainer').style.display = 'block';
-        }
-
-        // Hide profile page
-        function hideProfile() {
-            document.getElementById('profileContainer').style.display = 'none';
-            document.getElementById('appContent').style.display = 'block';
-        }
-
-        // Show edit form
-        function showEditForm() {
-            document.getElementById('editForm').style.display = 'block';
-            document.getElementById('profileError').textContent = '';
-            document.getElementById('profileSuccess').textContent = '';
-        }
-
-        // Hide edit form
-        function hideEditForm() {
-            document.getElementById('editForm').style.display = 'none';
-        }
-
-        // Update profile
-        function updateProfile() {
-            const newName = document.getElementById('editName').value;
-            const errorElement = document.getElementById('profileError');
-            const successElement = document.getElementById('profileSuccess');
-            
-            errorElement.textContent = '';
-            successElement.textContent = '';
-            
-            if (!newName) {
-                errorElement.textContent = 'Name cannot be empty';
-                return;
-            }
-            
-            db.collection('users').doc(currentUser.uid).update({
-                name: newName
-            })
-            .then(() => {
-                successElement.textContent = 'Profile updated successfully!';
-                userData.name = newName;
-                updateUserDisplay();
-                recordActivity('Profile updated', `Name changed to ${newName}`);
-                setTimeout(hideEditForm, 2000);
-            })
-            .catch(error => {
-                errorElement.textContent = error.message;
-            });
-        }
-
-        // Change password
-        function changePassword() {
-            const currentPassword = document.getElementById('currentPassword').value;
-            const newPassword = document.getElementById('newPassword').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
-            const errorElement = document.getElementById('passwordError');
-            const successElement = document.getElementById('passwordSuccess');
-            
-            errorElement.textContent = '';
-            successElement.textContent = '';
-            
-            if (newPassword !== confirmPassword) {
-                errorElement.textContent = 'New passwords do not match';
-                return;
-            }
-            
-            if (newPassword.length < 6) {
-                errorElement.textContent = 'Password must be at least 6 characters';
-                return;
-            }
-            
-            // Reauthenticate user
-            const credential = firebase.auth.EmailAuthProvider.credential(
-                currentUser.email, 
-                currentPassword
-            );
-            
-            currentUser.reauthenticateWithCredential(credential)
-                .then(() => {
-                    // Change password
-                    return currentUser.updatePassword(newPassword);
-                })
-                .then(() => {
-                    successElement.textContent = 'Password changed successfully!';
-                    document.getElementById('currentPassword').value = '';
-                    document.getElementById('newPassword').value = '';
-                    document.getElementById('confirmPassword').value = '';
-                    recordActivity('Password changed');
-                })
-                .catch(error => {
-                    errorElement.textContent = error.message;
-                });
-        }
-
-        // Show auth container
-        function showAuthContainer() {
-            document.getElementById('authContainer').style.display = 'flex';
-            document.getElementById('appContent').style.display = 'none';
-            document.getElementById('profileContainer').style.display = 'none';
-            
-            // Reset forms
-            document.getElementById('loginEmail').value = '';
-            document.getElementById('loginPassword').value = '';
-            document.getElementById('loginError').textContent = '';
-            
-            document.getElementById('signupName').value = '';
-            document.getElementById('signupEmail').value = '';
-            document.getElementById('signupPassword').value = '';
-            document.getElementById('signupConfirmPassword').value = '';
-            document.getElementById('signupError').textContent = '';
-            
-            document.getElementById('forgotEmail').value = '';
-            document.getElementById('forgotError').textContent = '';
-            document.getElementById('forgotSuccess').textContent = '';
-        }
-
-        // Show app content
-        function showAppContent() {
-            document.getElementById('authContainer').style.display = 'none';
-            document.getElementById('appContent').style.display = 'block';
-            document.getElementById('profileContainer').style.display = 'none';
-        }
-
-        // Your existing request analyzer functions with activity tracking
-        function analyzeRequest() {
-            const url = document.getElementById("urlInput").value;
-            const method = document.getElementById("methodSelect").value;
-            const body = document.getElementById("requestBody").value;
-            const headersInput = document.getElementById("headersInput").value;
-
-            if (!url) {
-                alert("Please enter a valid URL");
-                return;
-            }
-
-            let headers = { "Content-Type": "application/json" };
-            if (headersInput) {
-                headersInput.split(",").forEach(header => {
-                    const [key, value] = header.split(":").map(item => item.trim());
-                    if (key && value) {
-                        headers[key] = value;
-                    }
-                });
-            }
-
-            document.getElementById("loading").style.display = "block";
-
-            fetch(url, {
-                method: method,
-                headers: headers,
-                body: body ? body : null
-            })
-            .then(response => response.text().then(data => ({
-                status: response.status,
-                headers: Object.fromEntries(response.headers.entries()),
-                body: data
-            })))
-            .then(async result => {
-                document.getElementById("loading").style.display = "none";
-                
-                const table = document.getElementById("resultTable").getElementsByTagName('tbody')[0];
-                const row = table.insertRow();
-                row.insertCell(0).innerText = `${method} ${url}`;
-
-                let responseCell = row.insertCell(1);
-                let responseId = `response-${Date.now()}`;
-                let showExpand = result.body.length > 500;
-
-                responseCell.innerHTML = `
-                    ${showExpand ? `<button class="toggle-btn" onclick="toggleResponse('${responseId}')">Expand</button>` : ""}
-                    <div id="${responseId}" class="response-container">
-                        <b>Status:</b> ${result.status}<br>
-                        <b>Response Headers:</b><br>
-                        ${JSON.stringify(result.headers, null, 2).replace(/\\n/g, "<br>")}<br>
-                        <b>Response Body:</b><br>${result.body}
-                    </div>
-                `;
-
-                const actionCell = row.insertCell(2);
-                actionCell.innerHTML = `
-                    <button class='action-btn' onclick='viewFullResponse(${JSON.stringify(result)})'>View Full</button>
-                `;
-                
-                // Record this activity
-                await recordActivity('API Request', `${method} ${url}`);
-            })
-            .catch(error => {
-                document.getElementById("loading").style.display = "none";
-                alert("Error: " + error);
-                recordActivity('API Request Failed', `${method} ${url} - ${error.message}`);
-            });
-        }
-
-        function toggleResponse(responseId) {
-            const responseDiv = document.getElementById(responseId);
-            if (responseDiv.style.display === "none") {
-                responseDiv.style.display = "block";
-            } else {
-                responseDiv.style.display = "none";
-            }
-        }
-
-        function viewFullResponse(response) {
-            const newWindow = window.open();
-            newWindow.document.write("<html><head><title>Full Response</title>");
-            newWindow.document.write("<style>body { font-family: 'Consolas', monospace; background: #0a0f0d; color: #00ff7f; } pre { white-space: pre-wrap; }</style></head><body>");
-            newWindow.document.write("<h2>Full Response</h2>");
-            newWindow.document.write("<pre>" + JSON.stringify(response, null, 2) + "</pre>");
-            newWindow.document.write("</body></html>");
-        }
-
-        // Initialize on page load
-        window.onload = function() {
-            // Check if user is already authenticated
-            auth.onAuthStateChanged(user => {
-                if (user) {
-                    currentUser = user;
-                    loadUserData();
-                    showAppContent();
-                } else {
-                    showAuthContainer();
-                }
-            });
-        };
-    </script>
+    <script src="firebase-config.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
