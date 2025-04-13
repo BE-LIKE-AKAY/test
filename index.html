@@ -3,91 +3,187 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Animated User Search</title>
+    <title>Neon User Search</title>
     <!-- Dependencies -->
     <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
     <script src="https://unpkg.com/framer-motion@6.3.11/dist/framer-motion.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'Segoe UI', system-ui, sans-serif;
         }
 
         body {
-            background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
+            background: #0f0f0f;
             min-height: 100vh;
             padding: 2rem;
             color: white;
+            overflow-x: hidden;
         }
 
+        .gradient-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: linear-gradient(45deg, #0f0f0f, #1a1a1a);
+        }
+
+        .neon-blob {
+            position: fixed;
+            filter: blur(60px);
+            opacity: 0.3;
+            z-index: -1;
+        }
+
+        .blob1 { background: #ff3366; width: 400px; height: 400px; top: -100px; left: -100px; }
+        .blob2 { background: #33ccff; width: 300px; height: 300px; bottom: -150px; right: -100px; }
+
         .search-container {
-            max-width: 600px;
-            margin: 0 auto 2rem;
+            max-width: 800px;
+            margin: 2rem auto;
             position: relative;
         }
 
         .search-input {
             width: 100%;
-            padding: 1rem 2rem;
-            font-size: 1.1rem;
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            border-radius: 50px;
+            padding: 1.5rem 3rem;
+            font-size: 1.2rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
             color: white;
-            backdrop-filter: blur(10px);
             transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
         }
 
         .search-input:focus {
             outline: none;
-            background: rgba(255, 255, 255, 0.2);
+            border-color: #33ccff;
+            box-shadow: 0 0 20px rgba(51, 204, 255, 0.2);
         }
 
         .user-card {
-            background: rgba(255, 255, 255, 0.05);
+            background: linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
             backdrop-filter: blur(10px);
             border-radius: 15px;
-            padding: 1.5rem;
-            margin: 1rem auto;
-            max-width: 600px;
+            padding: 2rem;
+            margin: 1.5rem auto;
+            max-width: 800px;
             border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease;
         }
 
-        .loading {
+        .user-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .loading-dots {
             text-align: center;
             margin: 2rem 0;
-            color: rgba(255, 255, 255, 0.5);
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            background: #33ccff;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+
+        .dot:nth-child(2) { animation-delay: 0.2s; }
+        .dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-20px); }
+        }
+
+        .placeholder-text {
+            text-align: center;
+            color: rgba(255,255,255,0.3);
+            font-size: 1.2rem;
+            margin-top: 4rem;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255,255,255,0.3);
+        }
+
+        h3 {
+            color: #33ccff;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        p {
+            color: rgba(255,255,255,0.8);
+            margin: 0.5rem 0;
+        }
+
+        .highlight {
+            color: #ff3366;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
+    <div class="gradient-bg"></div>
+    <div class="neon-blob blob1"></div>
+    <div class="neon-blob blob2"></div>
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect } = React;
         const { motion } = framerMotion;
 
-        // Sample data (replace with your actual data files in /data folder)
+        // Sample data - replace with your actual data
         const sampleData = [
             {
-                name: "John Doe",
-                email: "john@example.com",
-                address: "123 Main St, City",
-                pincode: "123456"
+                name: "Alex Johnson",
+                email: "alex@tech.com",
+                address: "789 Innovation Drive, Silicon Valley",
+                pincode: "94025"
             },
             {
-                name: "Jane Smith",
-                email: "jane@work.com",
-                address: "456 Oak Rd, Town",
-                pincode: "654321"
+                name: "Sarah Williams",
+                email: "sarah@design.co",
+                address: "456 Creative Lane, New York",
+                pincode: "10001"
+            },
+            {
+                name: "Michael Chen",
+                email: "michael@data.ai",
+                address: "321 Binary Street, Boston",
+                pincode: "02108"
             }
         ];
+
+        function HighlightText({ text, query }) {
+            if (!query) return text;
+            const regex = new RegExp(`(${query})`, 'gi');
+            const parts = text.split(regex);
+            
+            return parts.map((part, i) => 
+                regex.test(part) ? <span key={i} className="highlight">{part}</span> : part
+            );
+        }
 
         function App() {
             const [query, setQuery] = useState('');
@@ -103,16 +199,14 @@
                 setIsLoading(true);
                 
                 try {
-                    // For real deployment, load data from JSON files:
-                    // const response = await fetch('/data/users.json');
-                    // const data = await response.json();
+                    // Simulate API call delay
+                    await new Promise(resolve => setTimeout(resolve, 500));
                     
-                    // Using sample data for demonstration
                     const matches = sampleData.filter(item =>
                         Object.values(item).some(value =>
                             value.toString().toLowerCase().includes(searchTerm.toLowerCase())
                     );
-                    
+
                     setResults(matches);
                 } catch (error) {
                     console.error('Search error:', error);
@@ -129,39 +223,59 @@
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ duration: 0.5 }}
+                    transition={{ duration: 0.8 }}
                 >
                     <div className="search-container">
                         <motion.div
-                            initial={{ y: -20, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ type: "spring", stiffness: 100 }}
                         >
-                            <input
-                                type="text"
-                                className="search-input"
-                                placeholder="Search users by name, email, address or pincode..."
-                                value={query}
-                                onChange={(e) => setQuery(e.target.value)}
-                                autoFocus
-                            />
+                            <div style={{ position: 'relative' }}>
+                                <i className="fas fa-search search-icon"></i>
+                                <input
+                                    type="text"
+                                    className="search-input"
+                                    placeholder="Search users by name, email, address or pincode..."
+                                    value={query}
+                                    onChange={(e) => setQuery(e.target.value)}
+                                    autoFocus
+                                />
+                            </div>
                         </motion.div>
                     </div>
 
-                    {isLoading && <div className="loading">Searching...</div>}
+                    {isLoading && (
+                        <div className="loading-dots">
+                            <div className="dot"></div>
+                            <div className="dot"></div>
+                            <div className="dot"></div>
+                        </div>
+                    )}
 
                     <div>
+                        {results.length === 0 && !isLoading && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="placeholder-text"
+                            >
+                                Start typing to search users...
+                            </motion.div>
+                        )}
+
                         {results.map((user, index) => (
                             <motion.div
                                 key={user.email}
                                 className="user-card"
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.1 }}
+                                transition={{ delay: index * 0.1, type: "spring" }}
                             >
-                                <h3>{user.name}</h3>
-                                <p>Email: {user.email}</p>
-                                <p>Address: {user.address}</p>
-                                <p>Pincode: {user.pincode}</p>
+                                <h3><HighlightText text={user.name} query={query} /></h3>
+                                <p>📧 <HighlightText text={user.email} query={query} /></p>
+                                <p>🏠 <HighlightText text={user.address} query={query} /></p>
+                                <p>📍 <HighlightText text={user.pincode} query={query} /></p>
                             </motion.div>
                         ))}
                     </div>
