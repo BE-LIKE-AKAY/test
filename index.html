@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub Search Hub</title>
+    <title>Advanced File Search Engine</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
     <style>
         :root {
             --primary: #2d3436;
@@ -12,124 +13,84 @@
             --background: #f5f6fa;
             --text: #2d3436;
             --highlight: #ffeaa7;
+            --success: #2ecc71;
+            --warning: #f1c40f;
+            --error: #e74c3c;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        body {
-            background: var(--background);
-            color: var(--text);
-            line-height: 1.6;
-        }
-
-        .header {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-            padding: 2rem 1rem;
-            text-align: center;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .search-container {
-            max-width: 800px;
-            margin: -2rem auto 2rem;
-            padding: 0 1rem;
-        }
-
-        .search-box {
-            width: 100%;
-            padding: 1.2rem;
-            border: none;
-            border-radius: 30px;
-            font-size: 1.1rem;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            transition: all 0.3s ease;
-        }
-
-        .search-box:focus {
-            outline: none;
-            box-shadow: 0 4px 25px rgba(0, 0, 0, 0.2);
-            transform: scale(1.02);
-        }
-
-        .results-container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 0 1rem;
-        }
-
-        .result-card {
-            background: white;
-            border-radius: 15px;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            transition: transform 0.2s ease;
-            cursor: pointer;
-        }
-
-        .result-card:hover {
-            transform: translateY(-3px);
-        }
-
-        .result-title {
-            color: var(--secondary);
+        /* Previous styles remain the same, add these new styles */
+        
+        .file-meta {
+            display: flex;
+            gap: 10px;
             margin-bottom: 0.5rem;
-            font-weight: 600;
-        }
-
-        .result-description {
-            color: #666;
-            font-size: 0.95rem;
-        }
-
-        .highlight {
-            background-color: var(--highlight);
-            padding: 0 0.2em;
-            border-radius: 3px;
-        }
-
-        .no-results {
-            text-align: center;
-            padding: 2rem;
+            font-size: 0.85rem;
             color: #666;
         }
 
-        .search-stats {
-            text-align: right;
-            margin-bottom: 1rem;
-            color: #666;
-            font-size: 0.9rem;
+        .file-type {
+            background: var(--secondary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 500;
         }
 
-        @media (max-width: 768px) {
-            .header h1 {
-                font-size: 1.5rem;
-            }
-            
-            .search-box {
-                padding: 1rem;
-                font-size: 1rem;
-            }
+        .file-path {
+            background: var(--background);
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
+
+        .excerpt {
+            color: #666;
+            margin-top: 0.5rem;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .loading-bar {
+            height: 3px;
+            width: 0;
+            background: var(--secondary);
+            transition: width 0.3s ease;
+            margin-top: 1rem;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
         }
     </style>
 </head>
 <body>
     <header class="header">
-        <h1>🔍 GitHub Search Hub</h1>
-        <p>Find what you're looking for in our repositories</p>
+        <h1>🔍 Advanced File Search</h1>
+        <p>Search across documents, spreadsheets, and JSON files</p>
     </header>
 
     <div class="search-container">
         <input type="text" 
                class="search-box" 
-               placeholder="Search repositories, documentation, or topics..."
+               placeholder="Search through files..."
                id="searchInput">
+        <i class="fas fa-search search-icon"></i>
+        <div class="loading-bar" id="loadingBar"></div>
     </div>
 
     <div class="results-container">
@@ -138,66 +99,149 @@
     </div>
 
     <script>
-        // Fetch data from JSON file
-        let searchData = [];
-        fetch('/data/data.json')
-            .then(response => response.json())
-            .then(data => {
-                searchData = data;
-            })
-            .catch(error => console.error('Error loading data:', error));
+        let fileDatabase = [];
+        const supportedTypes = ['text/plain', 'application/json', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
 
-        // Search functionality
-        const searchInput = document.getElementById('searchInput');
-        const searchResults = document.getElementById('searchResults');
-        const searchStats = document.getElementById('searchStats');
-
-        const performSearch = (query) => {
-            if (!query) {
-                searchResults.innerHTML = '';
-                searchStats.innerHTML = '';
-                return;
+        // Initialize the search engine
+        async function initializeSearch() {
+            try {
+                showLoading(true);
+                const response = await fetch('/data');
+                const files = await response.json();
+                
+                fileDatabase = await Promise.all(files.map(async file => {
+                    const filePath = `${file.path}`;
+                    const content = await loadFileContent(filePath);
+                    return {
+                        path: filePath,
+                        type: file.type,
+                        content: content
+                    };
+                }));
+                
+                showAlert(`Loaded ${fileDatabase.length} files successfully`, 'success');
+            } catch (error) {
+                showAlert(`Error loading files: ${error.message}`, 'error');
+            } finally {
+                showLoading(false);
             }
+        }
 
-            const results = searchData.filter(item => {
-                const searchText = `${item.title} ${item.description} ${item.tags.join(' ')}`.toLowerCase();
-                return searchText.includes(query.toLowerCase());
+        async function loadFileContent(filePath) {
+            const extension = filePath.split('.').pop().toLowerCase();
+            
+            if (extension === 'xlsx') {
+                return await processExcelFile(filePath);
+            }
+            
+            const response = await fetch(filePath);
+            return extension === 'json' 
+                ? await response.json() 
+                : await response.text();
+        }
+
+        async function processExcelFile(filePath) {
+            const response = await fetch(filePath);
+            const arrayBuffer = await response.arrayBuffer();
+            const data = new Uint8Array(arrayBuffer);
+            const workbook = XLSX.read(data, { type: 'array' });
+            
+            return workbook.SheetNames.map(sheetName => ({
+                sheet: sheetName,
+                data: XLSX.utils.sheet_to_json(workbook.Sheets[sheetName])
+            }));
+        }
+
+        function searchContent(query, content) {
+            if (typeof content === 'string') {
+                return content.toLowerCase().includes(query.toLowerCase());
+            }
+            
+            if (Array.isArray(content)) {
+                return content.some(item => 
+                    JSON.stringify(item).toLowerCase().includes(query.toLowerCase())
+                );
+            }
+            
+            if (typeof content === 'object') {
+                return Object.values(content).some(value =>
+                    JSON.stringify(value).toLowerCase().includes(query.toLowerCase())
+                );
+            }
+            
+            return false;
+        }
+
+        function performSearch(query) {
+            if (!query) return [];
+            
+            return fileDatabase.filter(file => {
+                try {
+                    return searchContent(query, file.content);
+                } catch (error) {
+                    console.error(`Error searching file ${file.path}:`, error);
+                    return false;
+                }
             });
+        }
 
-            displayResults(results, query);
-        };
+        function formatContent(content) {
+            if (typeof content === 'string') {
+                return content.length > 200 ? content.substring(0, 200) + '...' : content;
+            }
+            
+            return JSON.stringify(content, null, 2).substring(0, 200) + '...';
+        }
 
-        const displayResults = (results, query) => {
+        // UI Functions
+        function showLoading(show) {
+            document.getElementById('loadingBar').style.width = show ? '100%' : '0';
+        }
+
+        function showAlert(message, type = 'info') {
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            document.body.prepend(alert);
+            
+            setTimeout(() => alert.remove(), 5000);
+        }
+
+        // Modified displayResults function
+        function displayResults(results, query) {
+            const resultsContainer = document.getElementById('searchResults');
+            
             if (results.length === 0) {
-                searchResults.innerHTML = `
+                resultsContainer.innerHTML = `
                     <div class="no-results">
+                        <img src="https://img.icons8.com/clouds/200/000000/no-results.png" alt="No results">
                         <h3>No results found for "${query}"</h3>
                         <p>Try different keywords or check your spelling</p>
                     </div>
                 `;
-                searchStats.innerHTML = '';
                 return;
             }
 
-            const highlight = (text) => {
-                const regex = new RegExp(`(${query})`, 'gi');
-                return text.replace(regex, '<span class="highlight">$1</span>');
-            };
-
-            searchResults.innerHTML = results.map(item => `
+            resultsContainer.innerHTML = results.map(file => `
                 <div class="result-card">
-                    <div class="result-title">${highlight(item.title)}</div>
-                    <div class="result-description">${highlight(item.description)}</div>
-                    <div class="result-tags">${item.tags.map(tag => `
-                        <span class="tag">#${highlight(tag)}</span>
-                    `).join(' ')}</div>
+                    <div class="file-meta">
+                        <span class="file-type">${file.type}</span>
+                        <span class="file-path">${file.path}</span>
+                    </div>
+                    <div class="excerpt">${highlight(formatContent(file.content), query)}</div>
                 </div>
             `).join('');
+        }
 
-            searchStats.innerHTML = `Showing ${results.length} of ${searchData.length} results`;
-        };
+        function highlight(text, query) {
+            const regex = new RegExp(`(${query})`, 'gi');
+            return text.replace(regex, '<span class="highlight">$1</span>');
+        }
 
-        // Debounce function for better performance
+        // Initialize the search engine on load
+        initializeSearch();
+
+        // Search input handling with debounce
         const debounce = (func, delay) => {
             let timeoutId;
             return (...args) => {
@@ -206,8 +250,11 @@
             };
         };
 
-        const debouncedSearch = debounce(performSearch, 300);
-        searchInput.addEventListener('input', (e) => debouncedSearch(e.target.value));
+        document.getElementById('searchInput').addEventListener('input', debounce(e => {
+            const query = e.target.value.trim();
+            const results = performSearch(query);
+            displayResults(results, query);
+        }, 300));
     </script>
 </body>
 </html>
