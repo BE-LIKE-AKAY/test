@@ -3,114 +3,173 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NeonChat - Modern Chat System</title>
-    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@6.5.95/css/materialdesignicons.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
+    <title>Animated User Search</title>
+    <!-- Dependencies -->
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <script src="https://unpkg.com/framer-motion@6.3.11/dist/framer-motion.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
+            min-height: 100vh;
+            padding: 2rem;
+            color: white;
+        }
+
+        .search-container {
+            max-width: 600px;
+            margin: 0 auto 2rem;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 50px;
+            color: white;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .user-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin: 1rem auto;
+            max-width: 600px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .loading {
+            text-align: center;
+            margin: 2rem 0;
+            color: rgba(255, 255, 255, 0.5);
+        }
+    </style>
 </head>
 <body>
-    <!-- Auth Screen -->
-    <div class="auth-container" id="authContainer">
-        <div class="auth-card">
-            <div class="logo">
-                <i class="mdi mdi-chat-processing"></i> NeonChat
-            </div>
-            <div class="form-group">
-                <input type="email" id="email" placeholder="Email" required>
-                <i class="mdi mdi-email"></i>
-            </div>
-            <div class="form-group">
-                <input type="password" id="password" placeholder="Password" required>
-                <i class="mdi mdi-lock"></i>
-            </div>
-            <button class="neon-btn" onclick="signUp()">
-                <i class="mdi mdi-account-plus"></i> Sign Up
-            </button>
-            <button class="neon-btn secondary" onclick="signIn()">
-                <i class="mdi mdi-login"></i> Sign In
-            </button>
-        </div>
-    </div>
+    <div id="root"></div>
 
-    <!-- Main App -->
-    <div class="app-container hidden" id="appContainer">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="user-profile">
-                <div class="avatar" id="userAvatar"></div>
-                <div class="user-info">
-                    <h3 id="username"></h3>
-                    <button class="icon-btn" onclick="toggleModal('profileModal')">
-                        <i class="mdi mdi-account-cog"></i>
-                    </button>
-                </div>
-            </div>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { motion } = framerMotion;
 
-            <div class="rooms-section">
-                <div class="section-header">
-                    <h3>Your Rooms</h3>
-                    <button class="icon-btn" onclick="createRoom()">
-                        <i class="mdi mdi-plus-box"></i>
-                    </button>
-                </div>
-                <div class="rooms-list" id="roomsList"></div>
-            </div>
-        </div>
+        // Sample data (replace with your actual data files in /data folder)
+        const sampleData = [
+            {
+                name: "John Doe",
+                email: "john@example.com",
+                address: "123 Main St, City",
+                pincode: "123456"
+            },
+            {
+                name: "Jane Smith",
+                email: "jane@work.com",
+                address: "456 Oak Rd, Town",
+                pincode: "654321"
+            }
+        ];
 
-        <!-- Chat Area -->
-        <div class="chat-area">
-            <div class="chat-header">
-                <h2 id="currentRoom">Select a Room</h2>
-                <div class="room-actions">
-                    <button class="neon-btn small" onclick="toggleModal('inviteModal')">
-                        <i class="mdi mdi-account-plus"></i> Invite
-                    </button>
-                </div>
-            </div>
+        function App() {
+            const [query, setQuery] = useState('');
+            const [results, setResults] = useState([]);
+            const [isLoading, setIsLoading] = useState(false);
 
-            <div class="messages-container" id="messagesContainer"></div>
+            const searchData = _.debounce(async (searchTerm) => {
+                if (!searchTerm) {
+                    setResults([]);
+                    return;
+                }
 
-            <div class="message-composer">
-                <input type="text" id="messageInput" placeholder="Type your message..." onkeypress="handleEnter(event)">
-                <div class="action-buttons">
-                    <button class="neon-btn" onclick="sendMessage()">
-                        <i class="mdi mdi-send"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+                setIsLoading(true);
+                
+                try {
+                    // For real deployment, load data from JSON files:
+                    // const response = await fetch('/data/users.json');
+                    // const data = await response.json();
+                    
+                    // Using sample data for demonstration
+                    const matches = sampleData.filter(item =>
+                        Object.values(item).some(value =>
+                            value.toString().toLowerCase().includes(searchTerm.toLowerCase())
+                    );
+                    
+                    setResults(matches);
+                } catch (error) {
+                    console.error('Search error:', error);
+                }
+                setIsLoading(false);
+            }, 300);
 
-    <!-- Profile Modal -->
-    <div class="modal hidden" id="profileModal">
-        <div class="modal-content">
-            <h2>Profile Settings</h2>
-            <input type="text" id="profileName" placeholder="Name">
-            <input type="email" id="profileEmail" placeholder="Email">
-            <input type="password" id="profilePassword" placeholder="New Password">
-            <input type="date" id="profileDOB">
-            <div class="modal-actions">
-                <button class="neon-btn" onclick="updateProfile()">Save</button>
-                <button class="neon-btn secondary" onclick="toggleModal('profileModal')">Cancel</button>
-            </div>
-        </div>
-    </div>
+            useEffect(() => {
+                searchData(query);
+                return () => searchData.cancel();
+            }, [query]);
 
-    <!-- Invite Modal -->
-    <div class="modal hidden" id="inviteModal">
-        <div class="modal-content">
-            <h2>Invite User</h2>
-            <input type="email" id="inviteEmail" placeholder="Enter email">
-            <div class="modal-actions">
-                <button class="neon-btn" onclick="sendInvite()">Send Invite</button>
-                <button class="neon-btn secondary" onclick="toggleModal('inviteModal')">Cancel</button>
-            </div>
-        </div>
-    </div>
+            return (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5 }}
+                >
+                    <div className="search-container">
+                        <motion.div
+                            initial={{ y: -20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                        >
+                            <input
+                                type="text"
+                                className="search-input"
+                                placeholder="Search users by name, email, address or pincode..."
+                                value={query}
+                                onChange={(e) => setQuery(e.target.value)}
+                                autoFocus
+                            />
+                        </motion.div>
+                    </div>
 
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-    <script src="firebase-config.js"></script>
-    <script src="app.js"></script>
+                    {isLoading && <div className="loading">Searching...</div>}
+
+                    <div>
+                        {results.map((user, index) => (
+                            <motion.div
+                                key={user.email}
+                                className="user-card"
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: index * 0.1 }}
+                            >
+                                <h3>{user.name}</h3>
+                                <p>Email: {user.email}</p>
+                                <p>Address: {user.address}</p>
+                                <p>Pincode: {user.pincode}</p>
+                            </motion.div>
+                        ))}
+                    </div>
+                </motion.div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
 </body>
 </html>
