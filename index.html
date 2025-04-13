@@ -1,260 +1,101 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced File Search Engine</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
-    <style>
-        :root {
-            --primary: #2d3436;
-            --secondary: #0984e3;
-            --background: #f5f6fa;
-            --text: #2d3436;
-            --highlight: #ffeaa7;
-            --success: #2ecc71;
-            --warning: #f1c40f;
-            --error: #e74c3c;
-        }
-
-        /* Previous styles remain the same, add these new styles */
-        
-        .file-meta {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 0.5rem;
-            font-size: 0.85rem;
-            color: #666;
-        }
-
-        .file-type {
-            background: var(--secondary);
-            color: white;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-weight: 500;
-        }
-
-        .file-path {
-            background: var(--background);
-            padding: 2px 8px;
-            border-radius: 12px;
-        }
-
-        .excerpt {
-            color: #666;
-            margin-top: 0.5rem;
-            font-family: 'Courier New', Courier, monospace;
-        }
-
-        .loading-bar {
-            height: 3px;
-            width: 0;
-            background: var(--secondary);
-            transition: width 0.3s ease;
-            margin-top: 1rem;
-        }
-
-        .alert {
-            padding: 1rem;
-            border-radius: 8px;
-            margin: 1rem 0;
-        }
-
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .alert-warning {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .alert-error {
-            background: #f8d7da;
-            color: #721c24;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Search Tool</title>
+  <style>
+    body {
+      background-color: #0d1117;
+      color: #c9d1d9;
+      font-family: monospace;
+      padding: 2em;
+    }
+    input, button {
+      padding: 0.5em;
+      font-size: 1em;
+      margin-top: 1em;
+    }
+    .result {
+      background: #161b22;
+      border-left: 5px solid #58a6ff;
+      padding: 1em;
+      margin-top: 1em;
+      white-space: pre-wrap;
+      border-radius: 0.5em;
+    }
+  </style>
 </head>
 <body>
-    <header class="header">
-        <h1>🔍 Advanced File Search</h1>
-        <p>Search across documents, spreadsheets, and JSON files</p>
-    </header>
+  <h1>🔍 Local File Search Tool</h1>
+  <p>Choose your files (Text, JSON, or CSV):</p>
+  <input type="file" id="fileInput" multiple />
+  <br/>
+  <input type="text" id="keywordInput" placeholder="Enter keyword" />
+  <br/>
+  <button onclick="searchKeyword()">Search</button>
+  <div id="results"></div>
 
-    <div class="search-container">
-        <input type="text" 
-               class="search-box" 
-               placeholder="Search through files..."
-               id="searchInput">
-        <i class="fas fa-search search-icon"></i>
-        <div class="loading-bar" id="loadingBar"></div>
-    </div>
+  <script>
+    function isJSON(str) {
+      try {
+        JSON.parse(str);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
 
-    <div class="results-container">
-        <div class="search-stats" id="searchStats"></div>
-        <div id="searchResults"></div>
-    </div>
+    async function searchKeyword() {
+      const keyword = document.getElementById('keywordInput').value.trim();
+      const files = document.getElementById('fileInput').files;
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.innerHTML = '';
 
-    <script>
-        let fileDatabase = [];
-        const supportedTypes = ['text/plain', 'application/json', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+      if (!keyword) {
+        alert("Please enter a keyword.");
+        return;
+      }
 
-        // Initialize the search engine
-        async function initializeSearch() {
-            try {
-                showLoading(true);
-                const response = await fetch('/data');
-                const files = await response.json();
-                
-                fileDatabase = await Promise.all(files.map(async file => {
-                    const filePath = `${file.path}`;
-                    const content = await loadFileContent(filePath);
-                    return {
-                        path: filePath,
-                        type: file.type,
-                        content: content
-                    };
-                }));
-                
-                showAlert(`Loaded ${fileDatabase.length} files successfully`, 'success');
-            } catch (error) {
-                showAlert(`Error loading files: ${error.message}`, 'error');
-            } finally {
-                showLoading(false);
+      if (!files.length) {
+        alert("Please select some files.");
+        return;
+      }
+
+      for (const file of files) {
+        const text = await file.text();
+
+        let matches = [];
+
+        if (file.type === "application/json" && isJSON(text)) {
+          const jsonData = JSON.parse(text);
+          const search = JSON.stringify(jsonData, null, 2)
+            .split("\n")
+            .filter(line => line.toLowerCase().includes(keyword.toLowerCase()));
+          if (search.length) {
+            matches.push(`🔹 Matches in JSON file: ${file.name}\n${search.join('\n')}`);
+          }
+        } else {
+          const lines = text.split("\n");
+          lines.forEach((line, idx) => {
+            if (line.toLowerCase().includes(keyword.toLowerCase())) {
+              matches.push(`🔹 ${file.name} (line ${idx + 1}): ${line}`);
             }
+          });
         }
 
-        async function loadFileContent(filePath) {
-            const extension = filePath.split('.').pop().toLowerCase();
-            
-            if (extension === 'xlsx') {
-                return await processExcelFile(filePath);
-            }
-            
-            const response = await fetch(filePath);
-            return extension === 'json' 
-                ? await response.json() 
-                : await response.text();
+        if (matches.length) {
+          const block = document.createElement('div');
+          block.className = 'result';
+          block.textContent = matches.join("\n");
+          resultsDiv.appendChild(block);
         }
+      }
 
-        async function processExcelFile(filePath) {
-            const response = await fetch(filePath);
-            const arrayBuffer = await response.arrayBuffer();
-            const data = new Uint8Array(arrayBuffer);
-            const workbook = XLSX.read(data, { type: 'array' });
-            
-            return workbook.SheetNames.map(sheetName => ({
-                sheet: sheetName,
-                data: XLSX.utils.sheet_to_json(workbook.Sheets[sheetName])
-            }));
-        }
-
-        function searchContent(query, content) {
-            if (typeof content === 'string') {
-                return content.toLowerCase().includes(query.toLowerCase());
-            }
-            
-            if (Array.isArray(content)) {
-                return content.some(item => 
-                    JSON.stringify(item).toLowerCase().includes(query.toLowerCase())
-                );
-            }
-            
-            if (typeof content === 'object') {
-                return Object.values(content).some(value =>
-                    JSON.stringify(value).toLowerCase().includes(query.toLowerCase())
-                );
-            }
-            
-            return false;
-        }
-
-        function performSearch(query) {
-            if (!query) return [];
-            
-            return fileDatabase.filter(file => {
-                try {
-                    return searchContent(query, file.content);
-                } catch (error) {
-                    console.error(`Error searching file ${file.path}:`, error);
-                    return false;
-                }
-            });
-        }
-
-        function formatContent(content) {
-            if (typeof content === 'string') {
-                return content.length > 200 ? content.substring(0, 200) + '...' : content;
-            }
-            
-            return JSON.stringify(content, null, 2).substring(0, 200) + '...';
-        }
-
-        // UI Functions
-        function showLoading(show) {
-            document.getElementById('loadingBar').style.width = show ? '100%' : '0';
-        }
-
-        function showAlert(message, type = 'info') {
-            const alert = document.createElement('div');
-            alert.className = `alert alert-${type}`;
-            alert.textContent = message;
-            document.body.prepend(alert);
-            
-            setTimeout(() => alert.remove(), 5000);
-        }
-
-        // Modified displayResults function
-        function displayResults(results, query) {
-            const resultsContainer = document.getElementById('searchResults');
-            
-            if (results.length === 0) {
-                resultsContainer.innerHTML = `
-                    <div class="no-results">
-                        <img src="https://img.icons8.com/clouds/200/000000/no-results.png" alt="No results">
-                        <h3>No results found for "${query}"</h3>
-                        <p>Try different keywords or check your spelling</p>
-                    </div>
-                `;
-                return;
-            }
-
-            resultsContainer.innerHTML = results.map(file => `
-                <div class="result-card">
-                    <div class="file-meta">
-                        <span class="file-type">${file.type}</span>
-                        <span class="file-path">${file.path}</span>
-                    </div>
-                    <div class="excerpt">${highlight(formatContent(file.content), query)}</div>
-                </div>
-            `).join('');
-        }
-
-        function highlight(text, query) {
-            const regex = new RegExp(`(${query})`, 'gi');
-            return text.replace(regex, '<span class="highlight">$1</span>');
-        }
-
-        // Initialize the search engine on load
-        initializeSearch();
-
-        // Search input handling with debounce
-        const debounce = (func, delay) => {
-            let timeoutId;
-            return (...args) => {
-                clearTimeout(timeoutId);
-                timeoutId = setTimeout(() => func.apply(this, args), delay);
-            };
-        };
-
-        document.getElementById('searchInput').addEventListener('input', debounce(e => {
-            const query = e.target.value.trim();
-            const results = performSearch(query);
-            displayResults(results, query);
-        }, 300));
-    </script>
+      if (!resultsDiv.children.length) {
+        resultsDiv.innerHTML = '<p class="result">❌ No matches found.</p>';
+      }
+    }
+  </script>
 </body>
 </html>
