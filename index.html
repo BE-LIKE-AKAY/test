@@ -1,101 +1,202 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Search Tool</title>
-  <style>
-    body {
-      background-color: #0d1117;
-      color: #c9d1d9;
-      font-family: monospace;
-      padding: 2em;
-    }
-    input, button {
-      padding: 0.5em;
-      font-size: 1em;
-      margin-top: 1em;
-    }
-    .result {
-      background: #161b22;
-      border-left: 5px solid #58a6ff;
-      padding: 1em;
-      margin-top: 1em;
-      white-space: pre-wrap;
-      border-radius: 0.5em;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Sourabh Trans Logistics</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Poppins;}
+html{scroll-behavior:smooth;}
+body{background:#0b0f1a;color:white;overflow-x:hidden;}
+
+nav{
+position:fixed;top:0;width:100%;
+background:rgba(0,0,0,.6);
+display:flex;justify-content:space-between;align-items:center;
+padding:15px 40px;z-index:1000;
+backdrop-filter:blur(10px);
+}
+nav h2{color:#00d4ff;}
+nav a{color:white;text-decoration:none;margin-left:20px;font-weight:600;}
+nav a:hover{color:#00d4ff;}
+
+.hero{
+height:100vh;
+background:linear-gradient(135deg,#020024,#090979,#00d4ff);
+display:flex;align-items:center;justify-content:center;
+text-align:center;
+animation:bgmove 10s infinite alternate;
+}
+@keyframes bgmove{
+0%{background-position:0%}
+100%{background-position:100%}
+}
+
+.hero h1{font-size:4rem;}
+.hero p{margin-top:15px;font-size:1.2rem;}
+.hero span{color:#00d4ff;}
+.hero button{
+margin-top:30px;
+padding:15px 40px;
+background:#00d4ff;color:black;
+border:none;border-radius:30px;
+font-size:1rem;cursor:pointer;
+transition:.3s;
+}
+.hero button:hover{transform:scale(1.1);}
+
+section{padding:100px 10%;}
+
+.card{
+background:#12182b;
+padding:30px;
+border-radius:20px;
+box-shadow:0 0 20px rgba(0,212,255,.2);
+transition:.4s;
+}
+.card:hover{transform:translateY(-10px);}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:30px;}
+
+h2{color:#00d4ff;margin-bottom:20px;}
+
+.counter{font-size:3rem;color:#00d4ff;}
+
+footer{
+background:black;padding:30px;text-align:center;
+}
+
+/* Animations */
+.fade{opacity:0;transform:translateY(40px);transition:1s;}
+.fade.show{opacity:1;transform:translateY(0);}
+
+/* Responsive */
+@media(max-width:768px){
+.hero h1{font-size:2.5rem;}
+nav{flex-direction:column;}
+}
+</style>
 </head>
 <body>
-  <h1>🔍 Local File Search Tool</h1>
-  <p>Choose your files (Text, JSON, or CSV):</p>
-  <input type="file" id="fileInput" multiple />
-  <br/>
-  <input type="text" id="keywordInput" placeholder="Enter keyword" />
-  <br/>
-  <button onclick="searchKeyword()">Search</button>
-  <div id="results"></div>
 
-  <script>
-    function isJSON(str) {
-      try {
-        JSON.parse(str);
-        return true;
-      } catch (e) {
-        return false;
-      }
-    }
+<nav>
+<h2>STL</h2>
+<div>
+<a href="#about">About</a>
+<a href="#why">Why Us</a>
+<a href="#routes">Routes</a>
+<a href="#contact">Contact</a>
+</div>
+</nav>
 
-    async function searchKeyword() {
-      const keyword = document.getElementById('keywordInput').value.trim();
-      const files = document.getElementById('fileInput').files;
-      const resultsDiv = document.getElementById('results');
-      resultsDiv.innerHTML = '';
+<section class="hero">
+<div>
+<h1><span>Sourabh Trans</span> Logistics</h1>
+<p>Delivering Trust. Delivering On Time.</p>
+<p>Established in 2013 | 20+ Years Industry Experience</p>
+<button onclick="document.getElementById('contact').scrollIntoView()">Get In Touch</button>
+</div>
+</section>
 
-      if (!keyword) {
-        alert("Please enter a keyword.");
-        return;
-      }
+<section id="about">
+<div class="fade">
+<h2>About Us</h2>
+<p>
+Sourabh Trans Logistics is a reliable transportation company based in Salvav, Vapi.  
+Since 2013, we have been providing safe, timely, and cost-effective logistics solutions across India.
+</p><br>
+<p>
+With over 20 years of industry expertise, we focus on professionalism, strong route management, and complete customer satisfaction.
+</p>
+</div>
+</section>
 
-      if (!files.length) {
-        alert("Please select some files.");
-        return;
-      }
+<section id="why">
+<h2>Why Choose Us?</h2>
+<div class="grid">
+<div class="card fade">20+ Years Industry Experience</div>
+<div class="card fade">Timely & Secure Deliveries</div>
+<div class="card fade">Professional & Reliable Service</div>
+<div class="card fade">Strong Transportation Network</div>
+<div class="card fade">Customer-Focused Approach</div>
+</div>
 
-      for (const file of files) {
-        const text = await file.text();
+<br><br>
+<div class="grid">
+<div class="card">
+<h3>Experience</h3>
+<div class="counter" data-target="20">0</div>
+<p>Years in Industry</p>
+</div>
+<div class="card">
+<h3>Routes</h3>
+<div class="counter" data-target="500">0</div>
+<p>Major Routes</p>
+</div>
+<div class="card">
+<h3>Clients</h3>
+<div class="counter" data-target="30000">0</div>
+<p>Happy Clients</p>
+</div>
+</div>
+</section>
 
-        let matches = [];
+<section id="routes">
+<div class="fade">
+<h2>Our Route Network</h2>
+<p><b>Most Frequent Routes:</b> North-East Region</p>
+<p><b>Also Operating In:</b> West & North India</p>
+</div>
+</section>
 
-        if (file.type === "application/json" && isJSON(text)) {
-          const jsonData = JSON.parse(text);
-          const search = JSON.stringify(jsonData, null, 2)
-            .split("\n")
-            .filter(line => line.toLowerCase().includes(keyword.toLowerCase()));
-          if (search.length) {
-            matches.push(`🔹 Matches in JSON file: ${file.name}\n${search.join('\n')}`);
-          }
-        } else {
-          const lines = text.split("\n");
-          lines.forEach((line, idx) => {
-            if (line.toLowerCase().includes(keyword.toLowerCase())) {
-              matches.push(`🔹 ${file.name} (line ${idx + 1}): ${line}`);
-            }
-          });
-        }
+<section id="contact">
+<h2>Contact Us</h2>
+<div class="grid">
+<div class="card fade">
+<p><b>Name:</b> Surendra Jangid</p>
+<p><b>Mobile:</b> 9714502058</p>
+<p><b>Email:</b> admin@sourabhlogistics.com</p>
+</div>
+<div class="card fade">
+<p><b>Office Address:</b></p>
+<p>K-6 Shiven Magnus,<br>Salvav, Vapi – 396191,<br>Gujarat</p>
+<p><b>Website:</b> www.sourabhlogistics.com</p>
+</div>
+</div>
+</section>
 
-        if (matches.length) {
-          const block = document.createElement('div');
-          block.className = 'result';
-          block.textContent = matches.join("\n");
-          resultsDiv.appendChild(block);
-        }
-      }
+<footer>
+<p>© 2026 Sourabh Trans Logistics | Delivering Trust. Delivering On Time.</p>
+</footer>
 
-      if (!resultsDiv.children.length) {
-        resultsDiv.innerHTML = '<p class="result">❌ No matches found.</p>';
-      }
-    }
-  </script>
+<script>
+// Scroll animation
+const fades=document.querySelectorAll('.fade');
+window.addEventListener('scroll',()=>{
+fades.forEach(el=>{
+let pos=el.getBoundingClientRect().top;
+if(pos<window.innerHeight-100){el.classList.add('show');}
+});
+});
+
+// Counter animation
+const counters=document.querySelectorAll('.counter');
+counters.forEach(counter=>{
+let update=()=>{
+let target=+counter.getAttribute('data-target');
+let c=+counter.innerText;
+let inc=target/100;
+if(c<target){
+counter.innerText=Math.ceil(c+inc);
+setTimeout(update,30);
+}else{counter.innerText=target;}
+}
+update();
+});
+</script>
+
 </body>
 </html>
